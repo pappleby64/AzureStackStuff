@@ -64,7 +64,8 @@
         "routeTableName": "RouteTable",
         "subnet1Prefix": "10.1.0.0/24",
         "subnet2Prefix": "10.1.1.0/24",
-        "nvasubnetPrefix": "10.1.253.0/27",
+        "nvasubnetPrefix": "10.1.253.0/24",
+        "nvaPrivateIpAddress": "10.1.253.254",
         "gatewaysubnetPrefix": "10.1.254.0/27",
         "storageAccountType": "Standard_LRS",
         "vmStorageAccountContainerName": "vhds",
@@ -80,6 +81,7 @@
     },
     "resources": [
         {
+            "type": "Microsoft.Network/networkSecurityGroups",
             "apiVersion": "2015-05-01-preview",
             "location": "[variables('location')]",
             "name": "[variables('networkSecurityGroupName')]",
@@ -102,19 +104,19 @@
             },
             "tags": {
                 "displayName": "NetworkSecurityGroup"
-            },
-            "type": "Microsoft.Network/networkSecurityGroups"
+            }
         },
         {
+            "type": "Microsoft.Storage/storageAccounts",
             "apiVersion": "2015-06-15",
             "location": "[variables('location')]",
             "name": "[toLower(variables('newStorageAccountName'))]",
             "properties": {
                 "accountType": "[variables('storageAccountType')]"
-            },
-            "type": "Microsoft.Storage/storageAccounts"
+            }
         },
         {
+            "type": "Microsoft.Network/virtualNetworks",
             "apiVersion": "2015-05-01-preview",
             "dependsOn": [
                 "[concat('Microsoft.Network/networkSecurityGroups/', variables('networkSecurityGroupName'))]",
@@ -133,11 +135,11 @@
                         "name": "[variables('subnet1Name')]",
                         "properties": {
                             "addressPrefix": "[variables('subnet1Prefix')]",
-                            "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
-                            },
                             "routeTable": {
                                 "id": "[resourceId('Microsoft.Network/routeTables',variables('routeTableName'))]"
+                            },
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('networkSecurityGroupName'))]"
                             }
                         }
                     },
@@ -169,10 +171,10 @@
                         }
                     }
                 ]
-            },
-            "type": "Microsoft.Network/virtualNetworks"
+            }
         },
         {
+            "type": "Microsoft.Network/localNetworkGateways",
             "apiVersion": "2015-05-01-preview",
             "dependsOn": [],
             "location": "[variables('location')]",
@@ -184,10 +186,10 @@
                     ]
                 },
                 "gatewayIpAddress": "[parameters('ExternalGatewayIPAddress')]"
-            },
-            "type": "Microsoft.Network/localNetworkGateways"
+            }
         },
         {
+            "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2015-06-15",
             "dependsOn": [],
             "location": "[variables('location')]",
@@ -196,10 +198,10 @@
                 "publicIPAddressVersion": "IPv4",
                 "publicIPAllocationMethod": "Dynamic",
                 "idleTimeoutInMinutes": 4
-            },
-            "type": "Microsoft.Network/publicIPAddresses"
+            }
         },
         {
+            "type": "Microsoft.Network/publicIPAddresses",
             "apiVersion": "2015-06-15",
             "dependsOn": [],
             "location": "[variables('location')]",
@@ -208,14 +210,12 @@
                 "publicIPAddressVersion": "IPv4",
                 "publicIPAllocationMethod": "Static",
                 "idleTimeoutInMinutes": 4
-            },
-            "type": "Microsoft.Network/publicIPAddresses"
+            }
         },
         {
+            "type": "Microsoft.Network/routeTables",
             "apiVersion": "2015-06-15",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses',variables('nvaPipName'))]"
-            ],
+            "dependsOn": [],
             "location": "[variables('location')]",
             "name": "[variables('routetableName')]",
             "properties": {
@@ -225,14 +225,14 @@
                         "properties": {
                             "addressPrefix": "[parameters('ExternalAddressSpace')]",
                             "nextHopType": "VirtualAppliance",
-                            "nextHopIpAddress": "[reference(resourceId('Microsoft.Network/publicIPAddresses',variables('nvaPipName'))).ipAddress]"
+                            "nextHopIpAddress": "[variables('nvaPrivateIpAddress')]"
                         }
                     }
                 ]
-            },
-            "type": "Microsoft.Network/routeTables"
+            }
         },
         {
+            "type": "Microsoft.Network/virtualNetworkGateways",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[resourceId('Microsoft.Network/publicIPAddresses', variables('gatewayPipName'))]",
@@ -268,11 +268,15 @@
                     "vpnClientRootCertificates": [],
                     "vpnClientRevokedCertificates": []
                 }
-            },
-            "type": "Microsoft.Network/virtualNetworkGateways"
+            }
         },
         {
+            "type": "Microsoft.Network/connections",
             "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworkGateways',variables('vnetGatewayName'))]",
+                "[resourceId('Microsoft.Network/localNetworkGateways',variables('localGatewayName'))]"
+            ],
             "location": "[variables('location')]",
             "name": "[variables('connectionName')]",
             "properties": {
@@ -286,10 +290,10 @@
                 "routingWeight": 0,
                 "sharedKey": "password",
                 "enableBgp": false
-            },
-            "type": "Microsoft.Network/connections"
+            }
         },
         {
+            "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
@@ -308,10 +312,10 @@
                         }
                     }
                 ]
-            },
-            "type": "Microsoft.Network/networkInterfaces"
+            }
         },
         {
+            "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
@@ -330,10 +334,10 @@
                         }
                     }
                 ]
-            },
-            "type": "Microsoft.Network/networkInterfaces"
+            }
         },
         {
+            "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]",
@@ -346,7 +350,8 @@
                     {
                         "name": "ipconfig1",
                         "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
+                            "privateIPAllocationMethod": "Static",
+                            "privateIPAddress": "[variables('nvaPrivateIpAddress')]",
                             "subnet": {
                                 "id": "[variables('mvasubnetRef')]"
                             },
@@ -356,10 +361,10 @@
                         }
                     }
                 ]
-            },
-            "type": "Microsoft.Network/networkInterfaces"
+            }
         },
         {
+            "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
@@ -405,10 +410,10 @@
                         "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
                     }
                 }
-            },
-            "type": "Microsoft.Compute/virtualMachines"
+            }
         },
         {
+            "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
@@ -454,10 +459,10 @@
                         "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
                     }
                 }
-            },
-            "type": "Microsoft.Compute/virtualMachines"
+            }
         },
         {
+            "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName'))]",
@@ -503,10 +508,10 @@
                         "storageUri": "[reference(concat('Microsoft.Storage/storageAccounts/', variables('newStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).primaryEndpoints.blob]"
                     }
                 }
-            },
-            "type": "Microsoft.Compute/virtualMachines"
+            }
         },
         {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
             "apiVersion": "2015-06-15",
             "dependsOn": [
                 "[resourceId('Microsoft.Compute/virtualMachines',variables('nvavmName'))]"
@@ -524,8 +529,7 @@
                     ],
                     "commandToExecute": "powershell -ExecutionPolicy Unrestricted Get-Command"
                 }
-            },
-            "type": "Microsoft.Compute/virtualMachines/extensions"
+            }
         }
     ]
 }
