@@ -15,7 +15,7 @@
         Destination                      = $RemoteIPAddress
         AuthenticationMethod             = 'PSKOnly'
         SharedSecret                     = 'password'
-        IPv4Subnet                       = $AddressSpace
+        IPv4Subnet                       = '{0}:{1}' -f $AddressSpace,'200'
         AuthenticationTransformConstants = 'GCMAES256'
         CipherTransformConstants         = 'GCMAES256'
         DHGroup                          = 'Group2'
