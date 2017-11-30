@@ -527,7 +527,49 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/CreateVPN.ps1')]"
                     ],
-                    "commandToExecute": "powershell -ExecutionPolicy Unrestricted Get-Command"
+                    "commandToExecute": "[concat('Powershell -ExecutionPolicy .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\"')]"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines',variables('vm1Name'))]"
+            ],
+            "location": "[resourceGroup().location]",
+            "name": "[concat(variables('nvavmName'),'/CustomScriptExtension')]",
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.8",
+                "autoUpgradeMinorVersion": "true",
+                "settings": {
+                    "fileUris": [
+                        "[concat(variables('vmExtensionScriptLocation'), '/scripts/DownloadTools.ps1')]"
+                    ],
+                    "commandToExecute": "Powershell -ExecutionPolicy .\\DownloadTools.ps1"
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "apiVersion": "2015-06-15",
+            "dependsOn": [
+                "[resourceId('Microsoft.Compute/virtualMachines',variables('vm2Name'))]"
+            ],
+            "location": "[resourceGroup().location]",
+            "name": "[concat(variables('nvavmName'),'/CustomScriptExtension')]",
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.8",
+                "autoUpgradeMinorVersion": "true",
+                "settings": {
+                    "fileUris": [
+                        "[concat(variables('vmExtensionScriptLocation'), '/scripts/DownloadTools.ps1')]"
+                    ],
+                    "commandToExecute": "Powershell -ExecutionPolicy .\\DownloadTools.ps1"
                 }
             }
         }
