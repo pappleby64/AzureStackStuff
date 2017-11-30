@@ -527,7 +527,7 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/CreateVPN.ps1')]"
                     ],
-                    "commandToExecute": "[concat('Powershell -ExecutionPolicy .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\"')]"
+                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\"')]"
                 }
             }
         },
@@ -538,7 +538,7 @@
                 "[resourceId('Microsoft.Compute/virtualMachines',variables('vm1Name'))]"
             ],
             "location": "[resourceGroup().location]",
-            "name": "[concat(variables('nvavmName'),'/CustomScriptExtension')]",
+            "name": "[concat(variables('vm1Name'),'/CustomScriptExtension')]",
             "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
@@ -548,7 +548,7 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/DownloadTools.ps1')]"
                     ],
-                    "commandToExecute": "Powershell -ExecutionPolicy .\\DownloadTools.ps1"
+                    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command .\\DownloadTools.ps1"
                 }
             }
         },
@@ -559,7 +559,7 @@
                 "[resourceId('Microsoft.Compute/virtualMachines',variables('vm2Name'))]"
             ],
             "location": "[resourceGroup().location]",
-            "name": "[concat(variables('nvavmName'),'/CustomScriptExtension')]",
+            "name": "[concat(variables('vm2Name'),'/CustomScriptExtension')]",
             "properties": {
                 "publisher": "Microsoft.Compute",
                 "type": "CustomScriptExtension",
@@ -569,7 +569,7 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/DownloadTools.ps1')]"
                     ],
-                    "commandToExecute": "Powershell -ExecutionPolicy .\\DownloadTools.ps1"
+                    "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -Command .\\DownloadTools.ps1"
                 }
             }
         }
