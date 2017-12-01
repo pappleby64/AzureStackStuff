@@ -69,7 +69,7 @@
         "gatewaysubnetPrefix": "10.1.254.0/27",
         "storageAccountType": "Standard_LRS",
         "vmStorageAccountContainerName": "vhds",
-        "vmSize": "Standard_A1",
+        "vmSize": "Standard_A3",
         "virtualNetworkName": "vnet",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnet1Ref": "[concat(variables('vnetID'),'/subnets/',variables('subnet1Name'))]",

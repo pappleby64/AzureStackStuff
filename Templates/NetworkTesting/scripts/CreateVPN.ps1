@@ -9,6 +9,8 @@
     Install-WindowsFeature -Name Routing
     Install-WindowsFeature -Name 'RSAT-RemoteAccess-PowerShell'
     Install-RemoteAccess -VpnType VpnS2S
+    Start-Sleep -Seconds 10
+    Get-Service -Name RemoteAccess
     $params = @{
         Name                             = 'ToCloud'
         Protocol                         = 'IKEv2'
