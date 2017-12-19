@@ -3,7 +3,9 @@
         [Parameter(Mandatory = $true)]
         $RemoteIPAddress,
         [Parameter(Mandatory = $true)]
-        $AddressSpace
+        $AddressSpace,
+        [Parameter(Mandatory = $true)]
+        $SharedKey
     )
 
     Install-WindowsFeature -Name Routing
@@ -16,7 +18,7 @@
         Protocol                         = 'IKEv2'
         Destination                      = $RemoteIPAddress
         AuthenticationMethod             = 'PSKOnly'
-        SharedSecret                     = 'password'
+        SharedSecret                     = $SharedKey
         IPv4Subnet                       = '{0}:{1}' -f $AddressSpace,'200'
         AuthenticationTransformConstants = 'GCMAES256'
         CipherTransformConstants         = 'GCMAES256'

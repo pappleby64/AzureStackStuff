@@ -36,6 +36,12 @@
                 "description": "The address space of the external network"
             },
             "defaultValue": "10.18.10.2"
+        },
+        "SharedKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The shared key IPSec vpn"
+            }
         }
     },
     "variables": {
@@ -527,7 +533,7 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/CreateVPN.ps1')]"
                     ],
-                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\"')]"
+                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\" -SharedKey \"',parameters('ExternalAddressSpace'),'\"')]"
                 }
             }
         },
