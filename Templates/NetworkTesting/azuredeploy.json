@@ -533,7 +533,7 @@
                     "fileUris": [
                         "[concat(variables('vmExtensionScriptLocation'), '/scripts/CreateVPN.ps1')]"
                     ],
-                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\" -SharedKey \"',parameters('ExternalAddressSpace'),'\"')]"
+                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Unrestricted -Command .\\CreateVPN.ps1 -RemoteIPAddress \"',parameters('ExternalGatewayIPAddress'),'\" -AddressSpace \"',parameters('ExternalAddressSpace'),'\" -SharedKey \"',parameters('SharedKey'),'\"')]"
                 }
             }
         },
