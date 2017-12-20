@@ -35,7 +35,7 @@
             "metadata": {
                 "description": "The address space of the external network"
             },
-            "defaultValue": "10.18.10.2"
+            "defaultValue": "10.18.111.21"
         },
         "SharedKey": {
             "type": "securestring",
@@ -75,7 +75,7 @@
         "gatewaysubnetPrefix": "10.1.254.0/27",
         "storageAccountType": "Standard_LRS",
         "vmStorageAccountContainerName": "vhds",
-        "vmSize": "Standard_A3",
+        "vmSize": "Standard_D13",
         "virtualNetworkName": "vnet",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnet1Ref": "[concat(variables('vnetID'),'/subnets/',variables('subnet1Name'))]",
