@@ -9,6 +9,30 @@
             },
             "defaultValue": "VM-"
         },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D13",
+            "allowedValues": [
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_A6",
+                "Standard_A7",
+                "Standard_A8",
+                "Standard_A9",
+                "Standard_A10",
+                "Standard_A11",
+                "Standard_D2",
+                "Standard_D3",
+                "Standard_D4",
+                "Standard_D11",
+                "Standard_D12",
+                "Standard_D13",
+                "Standard_D14"
+                ],      
+            "metadata": {
+                "description": "Size of the Virtual Machines."
+                }  
+        },
         "adminUsername": {
             "type": "string",
             "metadata": {
@@ -75,7 +99,7 @@
         "gatewaysubnetPrefix": "10.1.254.0/27",
         "storageAccountType": "Standard_LRS",
         "vmStorageAccountContainerName": "vhds",
-        "vmSize": "Standard_D13",
+        "vmSize": "[parameters('vmSize')]",
         "virtualNetworkName": "vnet",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnet1Ref": "[concat(variables('vnetID'),'/subnets/',variables('subnet1Name'))]",
