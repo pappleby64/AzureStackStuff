@@ -75,7 +75,7 @@ if ($faileddeployments.Count -ge 1) {
 
         #Additional information for VMs and Extensions
         Write-Host -ForegroundColor Green "Getting Additional information for any VM resources"
-        $logfile = "$ResourceGroupName-vm-extensions.txt"
+        $logfile = "$ResourceGroupName-vm-extensions.json"
         Write-Host -ForegroundColor White "Writing deployment log file to $logfile" 
         Remove-Item $logfile -Confirm -ErrorAction SilentlyContinue
         foreach ($vm in (Get-AzureRmVM -ResourceGroupName $ResourceGroupName)) {
@@ -96,7 +96,7 @@ if ($faileddeployments.Count -ge 1) {
 
         #Additional information for VM ScaleSets
         Write-Host -ForegroundColor Green "Getting Additional information for any VM Scaleset resources"
-        $logfile = "$ResourceGroupName-scaleset-extensions.txt"
+        $logfile = "$ResourceGroupName-scaleset-extensions.json"
         Write-Host -ForegroundColor White "Writing deployment log file to $logfile" 
         Write-Host -ForegroundColor Green "Getting Additional information for any VM ScaleSet resources"
         foreach ($scaleset in (Get-AzureRmVmss -ResourceGroupName $ResourceGroupName)) {
