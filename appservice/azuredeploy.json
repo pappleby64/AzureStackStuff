@@ -114,7 +114,7 @@
       "metadata": {
         "description": "Location of resources that the script is dependent on such as linked templates and DSC modules"
       },
-      "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/301-storage-spaces-direct"
+      "defaultValue": "https://raw.githubusercontent.com/pappleby64/AzureStackStuff/master/appservice"
     },
     "_artifactsLocationSasToken": {
       "type": "securestring",
