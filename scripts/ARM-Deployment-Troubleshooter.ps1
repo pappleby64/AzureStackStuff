@@ -103,7 +103,7 @@ if ($faileddeployments.Count -ge 1) {
 
             $vmss = Get-AzureRmVmssvm  -ResourceGroupName $ResourceGroupName -Name $scaleset.Name
             foreach ($vm in $vmss) {
-                $vmssi = Get-AzureRmVmssVM -InstanceView -ResourceGroupName $ResourceGroupName  -VMScaleSetName $vmop.Properties.TargetResource.ResourceName -InstanceId $vm.InstanceID
+                $vmssi = Get-AzureRmVmssVM -InstanceView -ResourceGroupName $ResourceGroupName  -VMScaleSetName $scaleset.Name -InstanceId $vm.InstanceID
                 
                 Write-Host -ForegroundColor Green "Getting VM Status for ScaleSet Instance" $vm.Name
                 logheader ("VM status for ScaleSet Instance" + $vm.Name) $logfile
