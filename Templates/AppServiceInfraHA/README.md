@@ -52,8 +52,9 @@ This template uses Azure Stack Marketplace images. These need to be available on
 | _artifactsLocationSasToken | sas token for artifact location if requires | secure string |  
 | location | location to be used for the deployment | string |
 
-## Outputs
 The template outputs a number of values that are required when running the AppService RP installer
+## Outputs
+
 | Parameter Name | Description 
 | --- | --- 
 | FileSharePath | FQDN of the file server 
