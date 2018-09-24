@@ -56,8 +56,8 @@ This template uses Azure Stack Marketplace images. These need to be available on
 The template outputs a number of values that are required when running the AppService RP installer
 | Parameter Name | Description |
 | --- | --- |
-| FileSharePath | FQDN of the file server
-| FileShareOwner | Name of File Share Owner Account
-| FileShareUser | Name of File Share User Account
-| SQLserver | Name of SQL account
-| SQLUser | Name of SQL Server
+| FileSharePath | FQDN of the file server |
+| FileShareOwner | Name of File Share Owner Account |
+| FileShareUser | Name of File Share User Account |
+| SQLserver | Name of SQL account |
+| SQLUser | Name of SQL Server |
