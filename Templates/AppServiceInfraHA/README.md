@@ -54,7 +54,7 @@ This template uses Azure Stack Marketplace images. These need to be available on
 | sqlLoginPassword | password for sql login account | secure string |
 | sofsName | Name of the Scale-out File Server | string | sofs01
 | shareName | Name of the FileShare | string | WebSites
-| _artifactsLocation | Blob store where all deployment artifacts are stored | string |  https://raw.githubusercontent.com/Azure/AzureStack-QuickStart-Templates/master/sql-2016-alwayson| 
+| _artifactsLocation | Blob store where all deployment artifacts are stored | string |  https://raw.githubusercontent.com/pappleby64/AzureStackStuff/master/Templates/AppServiceInfraHA/  
 | _artifactsLocationSasToken | sas token for artifact location if requires | secure string |  
 | location | location to be used for the deployment | string |
 
