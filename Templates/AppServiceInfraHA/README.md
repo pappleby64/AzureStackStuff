@@ -1,7 +1,6 @@
 # Create HA Infrastructure for an AppServices deployment
 
-This template will deploy all the infrastructure required for Azure Stack AppServices installtion. The goal of teh template is to simplify the deployment of the AppService Resource Provider and is therefore intended to be deployed into the Default Provider Subscription. It has been configured with 
-
+This template will deploy all the infrastructure required for Azure Stack AppServices installtion. The goal of the template is to simplify the deployment of the AppService Resource Provider and is therefore intended to be deployed into the Default Provider Subscription. Storage and Network configuartion for deployment are included in teh main temlpalte and may need to be adjusted according to your needs.
 
  It creates the following resources:
 
@@ -13,6 +12,18 @@ This template will deploy all the infrastructure required for Azure Stack AppSer
 * Two VM (WS2016Core) configured as Storage Spaces Direct File share cluster 
 * 3 Availability Sets, for AD, FileServer cluster and SQL cluster 
 
+# Deploying the AppService Resource Provider
+
+As stated the goal of this template is to deploy the infrastructure needed to support the App Service Resource Provider so this should be deployed before running the AppService installer.
+* Check the template meets any requirements you may have on VNET address space and storage sizing
+* Deploy this template using the Default Provider Subscription
+* Create a new Resource Group 
+* Make a note of the outputs from this template they will be needed when installing AppService
+* When installing AppService be sure to select the option to deploy to an existing VNET
+* Details of File Server and SQL server endpoimnts & accounts can be found in the outputs noted 
+* After AppService deployment is complete manually back up bot the metering and hosting databases and add them to the availability group. 
+* By default the AppService Controller VM(s) have public IP addresses update the Controller NSG to allow RDP access, the SQL servers can be accesed from here on default IP addresses of 10.0.1.4 and 10.0.1.5
+
 ## Notes
 
 This template uses Azure Stack Marketplace images. These need to be available on your Azure Stack instance:
@@ -21,11 +32,6 @@ This template uses Azure Stack Marketplace images. These need to be available on
 * Choice of SQL Server 2016 SP2 on Windows Server 2016 (Enterprise, Standard or Developer)
 * Latest SQL IaaS Extension 1.2.x (currently 1.2.30)
 * Latest DSC Extension (2.76.0, or higher)
-
-## Configuration
-
-* Each SQL VMs will have a single data disk 
-* Each File Server VM will have 2 data disks
 
 ## Parameters
 
@@ -52,7 +58,6 @@ This template uses Azure Stack Marketplace images. These need to be available on
 | _artifactsLocationSasToken | sas token for artifact location if requires | secure string |  
 | location | location to be used for the deployment | string |
 
-The template outputs a number of values that are required when running the AppService RP installer
 ## Outputs
 
 | Parameter Name | Description 
