@@ -1,0 +1,928 @@
+{
+	"info": {
+		"_postman_id": "c187ee4d-a7be-4d6c-a78d-baa13780af7b",
+		"name": "Azure Stack",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Admin",
+			"item": [
+				{
+					"name": "1 Admin ARM Metadata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"adminAudience\", jsonData.authentication.audiences[0]);",
+									"    pm.environment.set(\"loginEndpoint\", jsonData.authentication.loginEndpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/metadata/endpoints?api-version=1.0",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"metadata",
+								"endpoints"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "1.0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2 Directory Metatdata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "08212192-53be-4a32-89fe-22263dc504c8",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{loginEndpoint}}{{azuread}}/.well-known/openid-configuration",
+							"host": [
+								"{{loginEndpoint}}{{azuread}}"
+							],
+							"path": [
+								".well-known",
+								"openid-configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.1 Admin Authenticate SP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"adminToken\", jsonData.access_token);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								},
+								{
+									"key": "resource",
+									"value": "{{adminAudience}}",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{SPID}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{SPSecret}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{tokenEndpoint}}",
+							"host": [
+								"{{tokenEndpoint}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Admin Authenticate User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"adminToken\", jsonData.access_token);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "resource",
+									"value": "{{adminAudience}}",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "{{adminUsername}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{adminPassword}}",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "1950a258-227b-4e31-a9cf-717495945fc2",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{tokenEndpoint}}",
+							"host": [
+								"{{tokenEndpoint}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4 Admin Subscription",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"adminSubscription\", jsonData.value[0].subscriptionId);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/subscriptions?api-version=2015-01-06",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2015-01-06"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5 Admin Resource Groups",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/subscriptions/{{adminSubscription}}/resourceGroups/?api-version=2015-01-01",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{adminSubscription}}",
+								"resourceGroups",
+								""
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2015-01-01"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6 Admin VM",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/subscriptions/{{adminSubscription}}/providers/Microsoft.Compute/virtualMachines?api-version=2017-03-30",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{adminSubscription}}",
+								"providers",
+								"Microsoft.Compute",
+								"virtualMachines"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2017-03-30"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7 Admin Providers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/subscriptions/{{adminSubscription}}/providers/?api-version=2018-09-01",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{adminSubscription}}",
+								"providers",
+								""
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2018-09-01"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "8 User Subscriptions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://adminmanagement.{{location}}.{{fqdn}}/subscriptions/{{adminSubscription}}/providers/Microsoft.Subscriptions.Admin/subscriptions/?api-version=2015-11-01",
+							"protocol": "https",
+							"host": [
+								"adminmanagement",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{adminSubscription}}",
+								"providers",
+								"Microsoft.Subscriptions.Admin",
+								"subscriptions",
+								""
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2015-11-01"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Tenant",
+			"item": [
+				{
+					"name": "1 Tenant ARM Metadata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tenantAudience\", jsonData.authentication.audiences[0]);",
+									"    pm.environment.set(\"loginEndpoint\", jsonData.authentication.loginEndpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://management.{{location}}.{{fqdn}}/metadata/endpoints?api-version=1.0",
+							"protocol": "https",
+							"host": [
+								"management",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"metadata",
+								"endpoints"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "1.0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2 Directory Metatdata",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "08212192-53be-4a32-89fe-22263dc504c8",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{loginEndpoint}}{{azuread}}/.well-known/openid-configuration",
+							"host": [
+								"{{loginEndpoint}}{{azuread}}"
+							],
+							"path": [
+								".well-known",
+								"openid-configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.1 Tenant Authenticate SP",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tenantToken\", jsonData.access_token);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "client_credentials",
+									"type": "text"
+								},
+								{
+									"key": "resource",
+									"value": "{{tenantAudience}}",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "{{SPID}}",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "{{SPSecret}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{tokenEndpoint}}",
+							"host": [
+								"{{tokenEndpoint}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Tenant Authenticate User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tenantToken\", jsonData.access_token);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "resource",
+									"value": "{{tenantAudience}}",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "{{tenantUsername}}",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "{{tenantPassword}}",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "1950a258-227b-4e31-a9cf-717495945fc2",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{tokenEndpoint}}",
+							"host": [
+								"{{tokenEndpoint}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4 Tenant Subscriptin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"pm.test(\"test\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tenantSubscription\", jsonData.value[0].subscriptionId);",
+									"});",
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{tenantToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://management.{{location}}.{{fqdn}}/subscriptions?api-version=2015-01-06",
+							"protocol": "https",
+							"host": [
+								"management",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2015-01-06"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5 Tenant Resource Groups",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{tenantToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://management.{{location}}.{{fqdn}}/subscriptions/{{tenantSubscription}}/resourceGroups/?api-version=2015-01-01",
+							"protocol": "https",
+							"host": [
+								"management",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{tenantSubscription}}",
+								"resourceGroups",
+								""
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2015-01-01"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "6 Tenant VM",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{tenantToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://management.{{location}}.{{fqdn}}/subscriptions/{{tenantSubscription}}/providers/Microsoft.Compute/virtualMachines?api-version=2017-03-30",
+							"protocol": "https",
+							"host": [
+								"management",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{tenantSubscription}}",
+								"providers",
+								"Microsoft.Compute",
+								"virtualMachines"
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2017-03-30"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "7 Tenant Providers",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
+								"exec": [
+									"",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{tenantToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "https://management.{{location}}.{{fqdn}}/subscriptions/{{tenantSubscription}}/providers/?api-version=2018-09-01",
+							"protocol": "https",
+							"host": [
+								"management",
+								"{{location}}",
+								"{{fqdn}}"
+							],
+							"path": [
+								"subscriptions",
+								"{{tenantSubscription}}",
+								"providers",
+								""
+							],
+							"query": [
+								{
+									"key": "api-version",
+									"value": "2018-09-01"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
