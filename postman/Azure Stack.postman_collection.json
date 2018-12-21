@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "c187ee4d-a7be-4d6c-a78d-baa13780af7b",
+		"_postman_id": "452591d5-0b7a-4f81-b164-de26035797de",
 		"name": "Azure Stack",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -16,7 +16,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetLoginEndpoint\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"adminAudience\", jsonData.authentication.audiences[0]);",
 									"    pm.environment.set(\"loginEndpoint\", jsonData.authentication.loginEndpoint);",
@@ -64,7 +66,9 @@
 							"script": {
 								"id": "08212192-53be-4a32-89fe-22263dc504c8",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetTokenEndpoint\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
 									"});",
@@ -102,7 +106,9 @@
 							"script": {
 								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetToken\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"adminToken\", jsonData.access_token);",
 									"});",
@@ -157,7 +163,9 @@
 							"script": {
 								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetToken\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"adminToken\", jsonData.access_token);",
 									"});",
@@ -222,11 +230,12 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetSubscription\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"adminSubscription\", jsonData.value[0].subscriptionId);",
 									"});",
-									"",
 									""
 								],
 								"type": "text/javascript"
@@ -278,7 +287,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -332,7 +343,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -388,7 +401,9 @@
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
 									"",
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -443,7 +458,9 @@
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
 									"",
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -504,7 +521,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetLoginEndpoint\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tenantAudience\", jsonData.authentication.audiences[0]);",
 									"    pm.environment.set(\"loginEndpoint\", jsonData.authentication.loginEndpoint);",
@@ -552,7 +571,9 @@
 							"script": {
 								"id": "08212192-53be-4a32-89fe-22263dc504c8",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetTokenEndpoint\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
 									"});",
@@ -590,7 +611,9 @@
 							"script": {
 								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetToken\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tenantToken\", jsonData.access_token);",
 									"});",
@@ -645,7 +668,10 @@
 							"script": {
 								"id": "7952d9c2-6dec-43b4-b468-6adb2b9d68b2",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetToken\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tenantToken\", jsonData.access_token);",
 									"});",
@@ -710,7 +736,10 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									"pm.test(\"test\", function () {",
+									"",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetSubscription\", function () {",
 									"    var jsonData = pm.response.json();",
 									"    pm.environment.set(\"tenantSubscription\", jsonData.value[0].subscriptionId);",
 									"});",
@@ -766,7 +795,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -820,7 +851,9 @@
 							"script": {
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
@@ -876,7 +909,9 @@
 								"id": "4c35280e-0cea-4974-b652-25d455fa6d32",
 								"exec": [
 									"",
-									""
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
 								],
 								"type": "text/javascript"
 							}
