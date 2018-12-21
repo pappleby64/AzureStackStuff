@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "452591d5-0b7a-4f81-b164-de26035797de",
+		"_postman_id": "84cf5437-e3d0-41bd-9328-0317f5fa7933",
 		"name": "Azure Stack",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -59,7 +59,7 @@
 					"response": []
 				},
 				{
-					"name": "2 Directory Metatdata",
+					"name": "2.1 Directory Metatdata (AAD)",
 					"event": [
 						{
 							"listen": "test",
@@ -89,6 +89,46 @@
 							"raw": "{{loginEndpoint}}{{azuread}}/.well-known/openid-configuration",
 							"host": [
 								"{{loginEndpoint}}{{azuread}}"
+							],
+							"path": [
+								".well-known",
+								"openid-configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Directory Metadata (ADFS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "08212192-53be-4a32-89fe-22263dc504c8",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetTokenEndpoint\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{loginEndpoint}}/.well-known/openid-configuration",
+							"host": [
+								"{{loginEndpoint}}"
 							],
 							"path": [
 								".well-known",
@@ -564,7 +604,7 @@
 					"response": []
 				},
 				{
-					"name": "2 Directory Metatdata",
+					"name": "2.1 Directory Metatdata (AAD)",
 					"event": [
 						{
 							"listen": "test",
@@ -594,6 +634,46 @@
 							"raw": "{{loginEndpoint}}{{azuread}}/.well-known/openid-configuration",
 							"host": [
 								"{{loginEndpoint}}{{azuread}}"
+							],
+							"path": [
+								".well-known",
+								"openid-configuration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Directory Metadata (ADFS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"id": "08212192-53be-4a32-89fe-22263dc504c8",
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});pm.test(\"GetTokenEndpoint\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.environment.set(\"tokenEndpoint\", jsonData.token_endpoint);",
+									"});",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{loginEndpoint}}/.well-known/openid-configuration",
+							"host": [
+								"{{loginEndpoint}}"
 							],
 							"path": [
 								".well-known",
