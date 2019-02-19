@@ -1,0 +1,60 @@
+{
+    "Stamps": [
+        {
+            "Name": "Prod",
+            "EnvironmentType": "AAD",
+            "Region": "north",
+            "ExternalFqdnDomain": "prod.company.com",
+            "InternalDomain": "azurestack",
+            "TenantDomain": "company.onmicrosoft.com",
+            "TenantId": "12345678-1234-1234-1234-123456789012",
+            "ServiceAdminUserName": "admin@company.onmicrosoft.com",
+            "TenantUserName": "tenant@company.onmmicrosoft.com",
+            "ErcsVMs": [
+                "10.10.0.224",
+                "10.10.0.225",
+                "10.10.0.226"
+            ],
+            "AdminSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Prod-Admin"
+            },
+            "TenantSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Prod-Tenant"
+            },
+            "CloudAdminSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Prod-Cloudadmin"
+            }
+        },
+        {
+            "Name": "Staging",
+            "EnvironmentType": "AAD",
+            "Region": "north",
+            "ExternalFqdnDomain": "stage.company.com",
+            "InternalDomain": "azurestack",
+            "TenantDomain": "company-stage.onmicrosoft.com",
+            "TenantId": "12345678-1234-1234-1234-123456789012",
+            "ServiceAdminUserName": "admin@company-stage.onmicrosoft.com",
+            "TenantUserName": "tenant@company-stage.onmmicrosoft.com",
+            "ErcsVMs": [
+                "10.20.0.224",
+                "10.20.0.225",
+                "10.20.0.226"
+            ],
+            "AdminSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Stage-Admin"
+            },
+            "TenantSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Stage-Tenant"
+            },
+            "CloudAdminSecret": {
+                "VaultName": "AzureStackAccounts",
+                "SecretName": "Stage-Cloudadmin"
+            }
+        }
+    ]
+}
