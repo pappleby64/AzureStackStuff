@@ -69,12 +69,18 @@ if ($faileddeployments.Count -ge 1) {
         foreach ($resid  in ($operations.Properties.targetResource.id | select  -Unique)) {
             Get-AzureRmResource -ResourceId $resid | convertto-json -Depth 3 | Out-File -FilePath $logfile -Append
         }
+    }
+}
+
 
         #Additional information for VMs and Extensions
         Write-Host -ForegroundColor Green "Getting Additional information for any VM resources"
-        foreach ($vmop in $operations | where {$_.Properties.TargetResource.ResourceType -eq 'Microsoft.Compute/virtualMachines'}) {
-            Write-Host -ForegroundColor Green "Getting details for vm" $vmstatus.Name 
-            $vmstatus = Get-AzureRmVm  -ResourceGroupName $ResourceGroupName -Name $vmop.Properties.TargetResource.ResourceName -Status
+        $logfile = "$ResourceGroupName-vm-extensions.json"
+        Write-Host -ForegroundColor White "Writing deployment log file to $logfile" 
+        Remove-Item $logfile -Confirm -ErrorAction SilentlyContinue
+        foreach ($vm in (Get-AzureRmVM -ResourceGroupName $ResourceGroupName)) {
+            Write-Host -ForegroundColor Green "Getting details for vm" $vm.Name 
+            $vmstatus = Get-AzureRmVm  -ResourceGroupName $ResourceGroupName -Name $vm.name -Status
 
             logheader ("VM status for VM" + $vmstatus.Name) $logfile
             $vmstatus.StatusesText| Out-File -FilePath $logfile -Append
@@ -89,12 +95,15 @@ if ($faileddeployments.Count -ge 1) {
         }
 
         #Additional information for VM ScaleSets
+        Write-Host -ForegroundColor Green "Getting Additional information for any VM Scaleset resources"
+        $logfile = "$ResourceGroupName-scaleset-extensions.json"
+        Write-Host -ForegroundColor White "Writing deployment log file to $logfile" 
         Write-Host -ForegroundColor Green "Getting Additional information for any VM ScaleSet resources"
-        foreach ($vmop in $operations | where {$_.Properties.TargetResource.ResourceType -eq 'Microsoft.Compute/virtualMachineScaleSets'}) {
+        foreach ($scaleset in (Get-AzureRmVmss -ResourceGroupName $ResourceGroupName)) {
 
-            $vmss = Get-AzureRmVmssvm  -ResourceGroupName $ResourceGroupName -Name $vmop.Properties.TargetResource.ResourceName 
+            $vmss = Get-AzureRmVmssvm  -ResourceGroupName $ResourceGroupName -Name $scaleset.Name
             foreach ($vm in $vmss) {
-                $vmssi = Get-AzureRmVmssVM -InstanceView -ResourceGroupName $ResourceGroupName  -VMScaleSetName $vmop.Properties.TargetResource.ResourceName -InstanceId $vm.InstanceID
+                $vmssi = Get-AzureRmVmssVM -InstanceView -ResourceGroupName $ResourceGroupName  -VMScaleSetName $scaleset.Name -InstanceId $vm.InstanceID
                 
                 Write-Host -ForegroundColor Green "Getting VM Status for ScaleSet Instance" $vm.Name
                 logheader ("VM status for ScaleSet Instance" + $vm.Name) $logfile
@@ -109,5 +118,3 @@ if ($faileddeployments.Count -ge 1) {
                 $vmssi.Extensions | ConvertTo-Json -Depth 5| Out-File -FilePath $logfile -Append
             }
         }
-    }
-}
