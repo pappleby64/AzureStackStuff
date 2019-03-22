@@ -4,8 +4,8 @@
     (
         [Parameter(Mandatory = $true)]
         $ArmEndpoint,
-        [Parameter(Mandatory = $true)]
-        $TenantId,
+        [Parameter(Mandatory = $false)]
+        $TenantId = 'Common',
         [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
         $Username,
         [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
@@ -21,13 +21,24 @@
         $RefreshToken
     )
 
-    $armMetedata = Invoke-RestMethod "$ArmEndpoint/metadata/endpoints?api-version=2015-01-01"
-    $adMetadata = Invoke-RestMethod "$($armMetedata.authentication.loginEndpoint)/$TenantId/.well-known/openid-configuration"
+    $metadataEndpoint = "{0}/metadata/endpoints?api-version=2015-01-01" -f $ArmEndpoint
+    $armMetedata = Invoke-RestMethod -Uri $metadataEndpoint
+    $loginEndpoint = $armMetedata.authentication.loginEndpoint
+    if ($loginEndpoint -like '*/adfs') {
+        $adMetadataUri = "{0}/.well-known/openid-configuration" -f $loginEndpoint
+        }
+    else {
+        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint,$TenantId
+        }
+    $adMetadata = Invoke-RestMethod -Uri $adMetadataUri
+    $tokenEndpoint = $adMetadata.token_endpoint
     $params = $PSBoundParameters
-    $params.Remove('ArmEndpoint')
+    $params.Remove('ArmEndpoint') | Out-Null
+    $params.Remove('TenantId') | Out-Null
     $params.Add('Resource',$armMetedata.authentication.audiences[0])
+    $params.Add('TokenEndpoint',$tokenEndpoint)
     $token = Get-ResourceToken @params
-    $token.access_token
+    $token
 }
 
 Export-ModuleMember -Function Get-ArmToken
@@ -37,8 +48,8 @@ function Get-ResourceToken {
     (
         [Parameter(Mandatory = $true)]
         $Resource,
-        [Parameter(Mandatory = $true)]
-        $TenantId,
+        [parameter(Mandatory = $true)]
+        $TokenEndpoint,
         [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
         $Username,
         [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
@@ -54,7 +65,6 @@ function Get-ResourceToken {
         $RefreshToken
     )
 
-    $adMetadata = Invoke-RestMethod "https://login.microsoftonline.com/$TenantId/.well-known/openid-configuration"
 
     switch ($PsCmdlet.ParameterSetName) {
         "UserName" {
@@ -77,8 +87,8 @@ function Get-ResourceToken {
         }
     }
       
-    $tokenResponse = Invoke-RestMethod -Uri $adMetadata.token_endpoint -ContentType "application/x-www-form-urlencoded" -Body $grantBody -Method Post 
-    $tokenResponse.access_token
+    $tokenResponse = Invoke-RestMethod -Uri $TokenEndpoint -ContentType "application/x-www-form-urlencoded" -Body $grantBody -Method Post 
+    $tokenResponse
 }
 
 Export-ModuleMember -Function Get-ResourceToken
