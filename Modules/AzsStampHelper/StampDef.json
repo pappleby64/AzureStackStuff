@@ -8,8 +8,8 @@
             "InternalDomain": "azurestack",
             "TenantDomain": "company.onmicrosoft.com",
             "TenantId": "12345678-1234-1234-1234-123456789012",
-            "ServiceAdminUserName": "admin@company.onmicrosoft.com",
-            "TenantUserName": "tenant@company.onmmicrosoft.com",
+            "AdminUser": "admin@company.onmicrosoft.com",
+            "TenantUser": "tenant@company.onmmicrosoft.com",
             "ErcsVMs": [
                 "10.10.0.224",
                 "10.10.0.225",
@@ -36,8 +36,8 @@
             "InternalDomain": "azurestack",
             "TenantDomain": "company-stage.onmicrosoft.com",
             "TenantId": "12345678-1234-1234-1234-123456789012",
-            "ServiceAdminUserName": "admin@company-stage.onmicrosoft.com",
-            "TenantUserName": "tenant@company-stage.onmmicrosoft.com",
+            "AdminUser": "admin@company-stage.onmicrosoft.com",
+            "TenantUser": "tenant@company-stage.onmmicrosoft.com",
             "ErcsVMs": [
                 "10.20.0.224",
                 "10.20.0.225",
