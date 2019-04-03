@@ -1,7 +1,15 @@
 #Requires -Modules @{ ModuleName="AzureRM.Profile"; ModuleVersion="5.5.2" }
+$settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
+$settingsFile = "$settingsFolder\StampDef.json"
 
-$envfFile = "$env:HOMEPATH\Desktop\StampDef.json"
-$StampDef = Get-Content $envfFile| Out-String | ConvertFrom-Json
+if (!(Test-Path $settingsFolder)) {
+    New-Item -ItemType Directory $settingsFolder | Out-Null
+}
+
+
+if (Test-Path $settingsFile) {
+    $StampDef = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
+}
 
 Function Prompt {
     Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzureRmContext).Environment.Name)]"
@@ -30,8 +38,6 @@ Function Get-Environment {
         $url = 'https://adminmanagement.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
     }
 
-
-
     $azEnv = Get-AzureRmEnvironment -Name $envName
     if (!$azEnv) {
         $azEnv = Add-AzureRmEnvironment -Name $envName -ArmEndpoint $url 
@@ -51,7 +57,7 @@ Function Get-KeyVaultSecret {
     )
 
     $oldContext = Get-AzureRmContext
-    $kvContext = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue| Where-Object {$_.Environment.Name -eq 'AzureCloud'}
+    $kvContext = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq 'AzureCloud' }
     if (!$kvContext) {
         Write-Host -ForegroundColor Cyan "No Azure context to access keyvault found, press anykey to login to Azure"
         Read-Host
@@ -74,12 +80,12 @@ Function Get-KeyVaultSecret {
 }
 
 Function Connect-Azure {
-    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue| Where-Object {$_.Environment.Name -eq 'AzureCloud'}
+    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq 'AzureCloud' }
     if ($ctx) {
         $ctx | Select-AzureRmContext | Out-Null
     }
     else {
-        Add-AzureRmAccount  | Out-Null
+        Add-AzureRmAccount | Out-Null
     }
     Get-AzureRmContext
 }
@@ -95,7 +101,7 @@ Function Connect-AzureStack {
         [Switch]
         $Tenant
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
@@ -103,37 +109,35 @@ Function Connect-AzureStack {
 
     if ($Tenant) {
         $azEnv = Get-Environment -Stamp $stampInfo -EndPoint Tenant
-        $userName = $stampInfo.TenantUserName
+        $userName = $stampInfo.TenantUser
         $secretInfo = $stampInfo.TenantSecret
     }
     else {
         $azEnv = Get-Environment -Stamp $stampInfo -EndPoint Admin
-        $userName = $stampInfo.ServiceAdminUserName
+        $userName = $stampInfo.AdminUser
         $secretInfo = $stampInfo.AdminSecret
     }
 
-    if ([String]::IsNullOrEmpty($userName)) {
-        Write-Host -ForegroundColor Cyan "No user found in stamp definition"
-        return
-    }
-    Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp with user $userName...."
-    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue| Where-Object {$_.Environment.Name -eq $azEnv.Name}
+    Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp ...."
+    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq $azEnv.Name -and $_.Account.Id -eq $userName }
     if ($ctx) {
-        Write-Host -ForegroundColor Cyan "Using existing AzureRmContext for $userName"
+        Write-Host -ForegroundColor Cyan "Using existing AzureRmContext for user $($ctx.Account.Id)"
         $ctx | Select-AzureRmContext | Out-Null
     }
     else {
-        Write-Host -ForegroundColor Cyan "Retrieving password for $userName from Azure KeyVault"
-        $password = (Get-KeyVaultSecret -valultName $secretInfo.VaultName -SecretName $secretInfo.SecretName ).SecretValue
-        if (!$password) {
-            Write-Host -ForegroundColor Cyan "Failed to retrieve password from keyvault"
-            $password = Read-Host -Prompt Password -AsSecureString
+        if ($null -ne $secretInfo -and $null -ne $userName) {
+            Write-Host -ForegroundColor Cyan "Retrieving password for $userName from Azure KeyVault"
+            $password = (Get-KeyVaultSecret -valultName $secretInfo.VaultName -SecretName $secretInfo.SecretName ).SecretValue
+            $adminCred = New-Object System.Management.Automation.PSCredential $userName, $Password
+            Write-Host -ForegroundColor Cyan "Adding AzureRmAccount for $userName"
+            Add-AzureRmAccount -Environment $azEnv -Credential $adminCred -Tenant $stampInfo.TenantId | Out-Null 
         }
-        $adminCred = New-Object System.Management.Automation.PSCredential $userName, $Password
-        Write-Host -ForegroundColor Cyan "Adding AzureRmAccount for $userName"
-        Add-AzureRmAccount -Environment $azEnv -Credential $adminCred | Out-Null 
+        else {
+            Write-Host -ForegroundColor Cyan "No stored login details available, login interactively"  
+            Add-AzureRmAccount -Environment $azEnv -Tenant $stampInfo.TenantId | Out-Null 
+        }
         if ((Get-AzureRmContext).Environment.Name -ne $azEnv.Name) {
-            Write-Host -ForegroundColor Red "Warning - No contexct found for $azEnv"
+            Write-Host -ForegroundColor Red "Failed to create a login context for stamp $Stamp"
         }
     }
 }
@@ -156,35 +160,38 @@ Function Connect-AzureStackPortal {
         $Tenant
 
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
 
+
     if ($Tenant) {
         $url = 'https://portal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
-        $userName = $stampInfo.TenantUserName
+        $userName = $stampInfo.TenantUser
         $secretInfo = $stampInfo.TenantSecret
     }
     else {
         $url = 'https://adminportal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
-        $userName = $stampInfo.ServiceAdminUserName
+        $userName = $stampInfo.AdminUser
         $secretInfo = $stampInfo.AdminSecret
     }
     $processPath = ''
     switch ($Browser) {
-        'InternetExplorer' {$processPath = 'C:\Program Files\Internet Explorer\Iexplore.exe'}
-        'Chrome' {$processPath = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'}
+        'InternetExplorer' { $processPath = 'C:\Program Files\Internet Explorer\Iexplore.exe' }
+        'Chrome' { $processPath = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe' }
     }
     if (-NOT(Test-Path -Path $processPath)) {
         Write-Host -ForegroundColor Yellow "Selected browser path does not exist: $processPath"
         return
     }
-    (Get-KeyVaultSecret -valultName $secretInfo.VaultName -secretName $secretInfo.SecretName ).SecretValueText | Clip
-    Write-Host -ForegroundColor Cyan "Login using account $userName The password is on the clipboard"
-    Write-Host -ForegroundColor Cyan "Press any key to launch $Browser"
-    Read-Host
+
+    if ($null -ne $secretInfo -and $null -ne $userName) {
+        (Get-KeyVaultSecret -valultName $secretInfo.VaultName -secretName $secretInfo.SecretName ).SecretValueText | clip.exe
+        Write-Host -ForegroundColor Cyan "Login using account $userName The password is on the clipboard"
+        Write-Host -ForegroundColor Cyan "Press any key to launch $Browser"
+    }
     Start-Process -FilePath $processPath -ArgumentList $url
 }
 
@@ -193,20 +200,20 @@ Export-ModuleMember -Function Connect-AzureStackPortal
 Function Get-PepSession {
     Param
     (
-        [Parameter(Mandatory = $true,position=0)]
+        [Parameter(Mandatory = $true, position = 0)]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false, ParameterSetName = 'SessionName')]
         [string]
         $SessionName
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
-        $session = Get-PSSession | Where-Object {$_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
+        $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
 
         if (!$session) {
             $cloudAdminUser = $stampInfo.CloudAdminUser
@@ -219,7 +226,7 @@ Function Get-PepSession {
             Write-Host -ForegroundColor Cyan "Retrieving password for $pepUser from Azure KeyVault"
             $pepPassword = (Get-KeyVaultSecret -valultName $stampInfo.CloudAdminSecret.VaultName -secretName $stampInfo.CloudAdminSecret.SecretName).SecretValue
             $pepCred = New-Object System.Management.Automation.PSCredential $pepUser, $pepPassword
-            $sessionName = "{0}{1}" -f $Stamp, (get-date).ToString('hhmm')
+            $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('hhmm')
             foreach ($pepip in $stampInfo.ErcsVMs) { 
                 Write-Host -ForegroundColor Cyan "Creating PEP session on $Stamp using IP $pepip"
                 $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -ErrorAction SilentlyContinue
@@ -229,7 +236,7 @@ Function Get-PepSession {
             }
             if (!$session) {
                 Write-Host -ForegroundColor Red "Failed to create PEP session"
-                }
+            }
         }  
     }
     else {
@@ -260,20 +267,20 @@ Function Unlock-PepSession {
         [string]
         $Stamp
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
     $pep = Get-PepSession -Stamp $Stamp
-    $token = Invoke-Command -Session $pep {Get-supportSessionToken} 
+    $token = Invoke-Command -Session $pep { Get-supportSessionToken } 
     Write-Host $token
     Set-Clipboard -Value $token 
     Write-Host -ForegroundColor Cyan "The support Session token has been copied to the clipboard"
     Write-Host -ForegroundColor Cyan "Make sure the token returned from support is on the clipboard then press return to unlock the session"
-    $dummy = Read-Host
-    $token = Get-Clipboard -Format Text | out-string
-    Invoke-Command -Session $pep {Unlock-supportSession -ResponseToken $using:token}    
+    Read-Host | Out-Null
+    $token = Get-Clipboard -Format Text | Out-String
+    Invoke-Command -Session $pep { Unlock-supportSession -ResponseToken $using:token }    
     $pep
 }
 
@@ -282,7 +289,7 @@ Export-ModuleMember -Function Unlock-PepSession
 Function Close-PepSession {
     Param
     (
-        [Parameter(Mandatory = $true, ParameterSetName ='Single')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false, ParameterSetName = 'All')]
@@ -290,18 +297,18 @@ Function Close-PepSession {
         $All
     )
     if ($PSCmdlet.ParameterSetName -eq 'Single') {
-        $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+        $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
         if (-NOT ($stampInfo)) {
             Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
             return
         }
-        $session = Get-PSSession | Where-Object {$_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -ne 'Disconnected'} 
+        $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -ne 'Disconnected' } 
         if ($session) {
             $session | Remove-PSSession
         }
     }
     else {
-        Get-PSSession | ? {$_.ConfigurationName -eq 'PrivilegedEndPoint'} | Remove-PSSession
+        Get-PSSession | Where-Object { $_.ConfigurationName -eq 'PrivilegedEndPoint' } | Remove-PSSession
     }
 }
 
@@ -314,12 +321,12 @@ Function Save-PepSession {
         [string]
         $Stamp
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
-    $session = Get-PSSession | Where-Object {$_.ComputerName -in $stampInfo.ErcsVMs} 
+    $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs } 
     if ($session) {
         Write-Host -ForegroundColor Cyan "Session $($Session.Name) saved"
         $session | Disconnect-PSSession 
@@ -331,9 +338,9 @@ Export-ModuleMember -Function Save-PepSession
 
 Function Clear-StampCache {
     foreach ($stamp in $StampDef.Stamps) {
-        $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue| Where-Object {$_.Environment.Name -like "$($Stamp.Name)-*"}
+        $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($Stamp.Name)-*" }
         $ctx | Remove-AzureRmContext -Force
-        $env = Get-AzureRmEnvironment | Where-Object {$_.Name -like "$($Stamp.Name)-*"}
+        $env = Get-AzureRmEnvironment | Where-Object { $_.Name -like "$($Stamp.Name)-*" }
         $env | Remove-AzureRmEnvironment | Out-Null
     }
 }
@@ -353,16 +360,16 @@ Function Get-UpdateProgress {
         [string]
         $Stamp
     )
-    $stampInfo = $StampDef.Stamps | Where-Object {$_.Name -eq $Stamp}
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     if (-NOT ($stampInfo)) {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
-    $pep = Get-PSSession | Where-Object {$_.ComputerName -in $stampInfo.ErcsVMs}
+    $pep = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs }
     if (!$pep) {
         $pep = Get-PepSession -Stamp $Stamp
     }
-    [xml]$status = Invoke-Command -Session $pep -ScriptBlock {Get-AzureStackUpdateStatus}
+    [xml]$status = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus }
     $ScriptBlock = {
         $duration = ""
         [DateTime]$endTime = Get-Date
@@ -376,7 +383,7 @@ Function Get-UpdateProgress {
             Write-Output ("{0,-8} {1,-10}  {2,-10}   {3}" -f $_.FullStepIndex, $duration, $_.Status, $_.Description)
         }
     }
-    $status.SelectNodes("//Step") | % $ScriptBlock
+    $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
 }
 
 Export-ModuleMember -Function Get-UpdateProgress
