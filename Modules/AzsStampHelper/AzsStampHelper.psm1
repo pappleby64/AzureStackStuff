@@ -119,7 +119,7 @@ Function Connect-AzureStack {
     }
 
     Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp ...."
-    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq $azEnv.Name -and $_.Account.Id -eq $userName }
+    $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq $azEnv.Name }
     if ($ctx) {
         Write-Host -ForegroundColor Cyan "Using existing AzureRmContext for user $($ctx.Account.Id)"
         $ctx | Select-AzureRmContext | Out-Null
