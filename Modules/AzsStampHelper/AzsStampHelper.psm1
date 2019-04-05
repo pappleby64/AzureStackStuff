@@ -214,6 +214,10 @@ Function Get-PepSession {
     }
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
+        if ($session.State -ne [System.Management.Automation.Runspaces.RunspaceState]::Opened) {
+            $session | Remove-PSSession -ErrorAction SilentlyContinue | Out-Null
+            $session = $null
+        }
 
         if (!$session) {
             $cloudAdminUser = $stampInfo.CloudAdminUser
@@ -251,7 +255,7 @@ Function Get-PepSession {
         $pepCred = New-Object System.Management.Automation.PSCredential $pepUser, $pepPassword
         $session = Get-PSSession -ComputerName $stampInfo.ErcsVMs -Credential $pepCred -Name $SessionName
         if ($session) {
-            $session | Connect-PSSession
+            $session | Connect-PSSession | Out-Null
         }
     }
 
