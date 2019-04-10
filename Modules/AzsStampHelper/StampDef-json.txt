@@ -1,0 +1,55 @@
+{
+    "Stamps": [
+        {
+            "Name": "Name label for an Azure Stack Stamp",
+            "Region": "Azure Stack region",
+            "ExternalFqdnDomain": "Azure Stack fqdn ",
+            "ErcsVMs": [
+                "10.118.142.224",
+                "10.118.142.225",
+                "10.118.142.226"
+            ],
+            "AdminUser": {
+                "UserName": "Username for using admin endpoint",
+                "TenantId": "tenant ID required if using guest accounts",
+                "VaultName": "keyvault name - if not present use interactive login",
+                "SecretName": "secret name - if not present use interactive login"
+            },
+            "TenantUser": {
+                "UserName": "tenant@tvplenovoazs.onmicrosoft.com",
+                "TenantId": "tenant ID required if using guest account",
+                "VaultName": "keyvault name- if not present use interactive login",
+                "SecretName": "secret name- if not present use interactive login"
+            },
+            "CloudAdminUser": {
+                "UserName": "cloud admin name domain\\user use double \\",
+                "VaultName": "keyvault name",
+                "SecretName": "secret name"
+            }
+        },
+        {
+            "Name": "Example",
+            "Region": "local",
+            "ExternalFqdnDomain": "azurestack.external",
+            "ErcsVMs": [
+                "10.10.10.224",
+                "10.10.10.225",
+                "10.10.10.226"
+            ],
+            "AdminUser": {
+                "UserName": "admin@azuread.onmicrosoft.com",
+            },
+            "TenantUser": {
+                "UserName": "tenant@azuread.onmicrosoft.com",
+                "TenantId": "40346d4a-5c39-48ec-8792-2322819188e1",
+                "VaultName": "Stampinfo",
+                "SecretName": "Example-Tenant"
+            },
+            "CloudAdminUser": {
+                "UserName": "azurestack\\cloudadmin",
+                "VaultName": "Stampinfo",
+                "SecretName": "Example-CloudAdmin"
+            }
+        }
+    ]
+}
