@@ -1,57 +1,57 @@
 {
     "Stamps": [
         {
-            "Name": "Lenovo",
-            "Region": "mas1",
-            "ExternalFqdnDomain": "mtc-tvp.com",
+            "Name": "Test",
+            "Region": "test",
+            "ExternalFqdnDomain": "domain.com",
             "ErcsVMs": [
-                "10.118.142.224",
-                "10.118.142.225",
-                "10.118.142.226"
+                "10.10.10.224",
+                "10.10.10.225",
+                "10.10.10.226"
             ],
             "AdminUser": {
-                "UserName": "stackadmin@tvplenovoazs.onmicrosoft.com",
-                "TenantId": "29f4ed7e-45b4-4eb9-b0f4-df4db1e93b35",
+                "UserName": "admin@test.onmicrosoft.com",
+                "TenantId": "45f4ed7e-21b4-3ab9-b0f4-df4db1e93b35",
                 "VaultName": "Stampinfo",
-                "SecretName": "Lenovo-Admin"
+                "SecretName": "Test-Admin"
             },
             "TenantUser": {
-                "UserName": "tenant@tvplenovoazs.onmicrosoft.com",
-                "TenantId": "29f4ed7e-45b4-4eb9-b0f4-df4db1e93b35",
+                "UserName": "tenant@test.onmicrosoft.com",
+                "TenantId": "45f4ed7e-21b4-3ab9-b0f4-df4db1e93b35",
                 "VaultName": "Stampinfo",
-                "SecretName": "Lenovo-Tenant"
+                "SecretName": "Test-Tenant"
             },
             "CloudAdminUser": {
                 "UserName": "azurestack\\cloudadmin",
                 "VaultName": "Stampinfo",
-                "SecretName": "Lenovo-CloudAdmin"
+                "SecretName": "Test-CloudAdmin"
             }
         },
         {
-            "Name": "HPE",
-            "Region": "mas2",
-            "ExternalFqdnDomain": "mtc-tvp.com",
+            "Name": "Prod",
+            "Region": "prod",
+            "ExternalFqdnDomain": "domain.com",
             "ErcsVMs": [
-                "10.118.148.224",
-                "10.118.148.225",
-                "10.118.148.226"
+                "10.10.11.224",
+                "10.10.11.225",
+                "10.10.11.226"
             ],
             "AdminUser": {
-                "UserName": "stackadmin@tvplenovoazs.onmicrosoft.com",
+                "UserName": "admin@prod.onmicrosoft.com",
                 "TenantId": "40346d4a-5c39-48ec-8792-2322819188e1",
                 "VaultName": "Stampinfo",
-                "SecretName": "HPE-Admin"
+                "SecretName": "Prod-Admin"
             },
             "TenantUser": {
-                "UserName": "tenant@tvplenovoazs.onmicrosoft.com",
+                "UserName": "tenant@prod.onmicrosoft.com",
                 "TenantId": "40346d4a-5c39-48ec-8792-2322819188e1",
                 "VaultName": "Stampinfo",
-                "SecretName": "HPE-Tenant"
+                "SecretName": "Prod-Tenant"
             },
             "CloudAdminUser": {
                 "UserName": "azurestack\\cloudadmin",
                 "VaultName": "Stampinfo",
-                "SecretName": "HPE-CloudAdmin"
+                "SecretName": "Prod-CloudAdmin"
             }
         }
     ]
