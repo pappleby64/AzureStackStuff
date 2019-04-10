@@ -1,4 +1,4 @@
-#Requires -Modules @{ ModuleName="AzureRM.Profile"; ModuleVersion="5.5.2" }
+﻿#Requires -Modules @{ ModuleName="AzureRM.Profile"; ModuleVersion="5.5.2" }
 $settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
 $settingsFile = "$settingsFolder\StampDef.json"
 
@@ -11,15 +11,8 @@ if (Test-Path $settingsFile) {
     $StampDef = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
 }
 
-Function Prompt {
-    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzureRmContext).Environment.Name)]"
-    Write-Host -NoNewline "$(Get-Location)"
-    return "> "
-}
 
-Export-ModuleMember -Function Prompt
-
-Function Get-Environment {
+Function GetEnvironment {
     Param
     (
         [Parameter (Mandatory = $true)]
@@ -45,7 +38,7 @@ Function Get-Environment {
     $azEnv
 }
 
-Function Get-KeyVaultSecret {
+Function GetKeyVaultSecret {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -79,6 +72,47 @@ Function Get-KeyVaultSecret {
     $kvsecret
 }
 
+function GetUserCredential{
+    param
+    (
+    $user
+    )
+     
+     $password = (GetKeyVaultSecret -valultName $user.VaultName -SecretName $user.SecretName ).SecretValue
+     $cred = New-Object System.Management.Automation.PSCredential $user.UserName, $Password
+     $cred
+}
+
+Function ConnectAzureStackUser {
+    Param
+    (
+    $User,
+    $Environment
+    )
+
+    $accountParams= @{}
+    $accountParams.Add('Environment',$Environment)
+
+    if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
+        $accountParams.Add('Credential',(GetUserCredential $User))
+    }
+
+    if (![String]::IsNullOrEmpty($User.TenantId)) {
+        $accountParams.Add('Tenant',$User.TenantId)
+        }
+
+    $result = Add-AzureRmAccount @accountParams
+    $result.Context 
+}
+
+Function Prompt {
+    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzureRmContext).Environment.Name)]"
+    Write-Host -NoNewline "$(Get-Location)"
+    return "> "
+}
+
+Export-ModuleMember -Function Prompt
+
 Function Connect-Azure {
     $ctx = Get-AzureRmContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq 'AzureCloud' }
     if ($ctx) {
@@ -108,14 +142,12 @@ Function Connect-AzureStack {
     }
 
     if ($Tenant) {
-        $azEnv = Get-Environment -Stamp $stampInfo -EndPoint Tenant
-        $userName = $stampInfo.TenantUser
-        $secretInfo = $stampInfo.TenantSecret
+        $azEnv = GetEnvironment -Stamp $stampInfo -EndPoint Tenant
+        $user = $stampInfo.TenantUser
     }
     else {
-        $azEnv = Get-Environment -Stamp $stampInfo -EndPoint Admin
-        $userName = $stampInfo.AdminUser
-        $secretInfo = $stampInfo.AdminSecret
+        $azEnv = GetEnvironment -Stamp $stampInfo -EndPoint Admin
+        $user = $stampInfo.AdminUser
     }
 
     Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp ...."
@@ -125,20 +157,10 @@ Function Connect-AzureStack {
         $ctx | Select-AzureRmContext | Out-Null
     }
     else {
-        if ($null -ne $secretInfo -and $null -ne $userName) {
-            Write-Host -ForegroundColor Cyan "Retrieving password for $userName from Azure KeyVault"
-            $password = (Get-KeyVaultSecret -valultName $secretInfo.VaultName -SecretName $secretInfo.SecretName ).SecretValue
-            $adminCred = New-Object System.Management.Automation.PSCredential $userName, $Password
-            Write-Host -ForegroundColor Cyan "Adding AzureRmAccount for $userName"
-            Add-AzureRmAccount -Environment $azEnv -Credential $adminCred -Tenant $stampInfo.TenantId | Out-Null 
-        }
-        else {
-            Write-Host -ForegroundColor Cyan "No stored login details available, login interactively"  
-            Add-AzureRmAccount -Environment $azEnv -Tenant $stampInfo.TenantId | Out-Null 
-        }
-        if ((Get-AzureRmContext).Environment.Name -ne $azEnv.Name) {
-            Write-Host -ForegroundColor Red "Failed to create a login context for stamp $Stamp"
-        }
+        $ctx = ConnectAzureStackUser -User $user -Environment $azEnv
+    }
+    if ($ctx.Environment.Name -eq $azEnv.Name -and $ctx.Account.Id -eq $user.UserName) {
+        Write-Host -ForegroundColor Cyan "Succesfully connected to $($azEnv.Name) as $($user.UserName)"
     }
 }
 
@@ -169,14 +191,13 @@ Function Connect-AzureStackPortal {
 
     if ($Tenant) {
         $url = 'https://portal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
-        $userName = $stampInfo.TenantUser
-        $secretInfo = $stampInfo.TenantSecret
+        $user = $stampInfo.TenantUser
     }
     else {
         $url = 'https://adminportal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
-        $userName = $stampInfo.AdminUser
-        $secretInfo = $stampInfo.AdminSecret
+        $user = $stampInfo.AdminUser
     }
+
     $processPath = ''
     switch ($Browser) {
         'InternetExplorer' { $processPath = 'C:\Program Files\Internet Explorer\Iexplore.exe' }
@@ -187,9 +208,9 @@ Function Connect-AzureStackPortal {
         return
     }
 
-    if ($null -ne $secretInfo -and $null -ne $userName) {
-        (Get-KeyVaultSecret -valultName $secretInfo.VaultName -secretName $secretInfo.SecretName ).SecretValueText | clip.exe
-        Write-Host -ForegroundColor Cyan "Login using account $userName The password is on the clipboard"
+    if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
+        (GetKeyVaultSecret -valultName $user.VaultName -secretName $user.SecretName ).SecretValueText | clip.exe
+        Write-Host -ForegroundColor Cyan "Login using account $user.UserName The password is on the clipboard"
         Write-Host -ForegroundColor Cyan "Press any key to launch $Browser"
     }
     Start-Process -FilePath $processPath -ArgumentList $url
@@ -212,24 +233,20 @@ Function Get-PepSession {
         Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
         return
     }
+
+    $pepUser = $stampInfo.CloudAdminUser
+    $pepUserName = $pepUser.UserName
+    $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
+    $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
+
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
         if ($session.State -ne [System.Management.Automation.Runspaces.RunspaceState]::Opened) {
             $session | Remove-PSSession -ErrorAction SilentlyContinue | Out-Null
             $session = $null
-        }
+            }
 
         if (!$session) {
-            $cloudAdminUser = $stampInfo.CloudAdminUser
-            if ([String]::IsNullOrEmpty($cloudAdminUser)) {
-                $pepUser = '{0}\Cloudadmin' -f $stampInfo.InternalDomain
-            }
-            else {
-                $pepUser = '{0}\{1}' -f $stampInfo.InternalDomain, $cloudAdminUser
-            }
-            Write-Host -ForegroundColor Cyan "Retrieving password for $pepUser from Azure KeyVault"
-            $pepPassword = (Get-KeyVaultSecret -valultName $stampInfo.CloudAdminSecret.VaultName -secretName $stampInfo.CloudAdminSecret.SecretName).SecretValue
-            $pepCred = New-Object System.Management.Automation.PSCredential $pepUser, $pepPassword
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('hhmm')
             foreach ($pepip in $stampInfo.ErcsVMs) { 
                 Write-Host -ForegroundColor Cyan "Creating PEP session on $Stamp using IP $pepip"
@@ -244,15 +261,6 @@ Function Get-PepSession {
         }  
     }
     else {
-        $cloudAdminUser = $stampInfo.CloudAdminUser
-        if ([String]::IsNullOrEmpty($cloudAdminUser)) {
-            $pepUser = '{0}\Cloudadmin' -f $stampInfo.InternalDomain
-        }
-        else {
-            $pepUser = '{0}\{1}' -f $stampInfo.InternalDomain, $cloudAdminUser
-        }
-        $pepPassword = (Get-KeyVaultSecret -valultName $stampInfo.CloudAdminSecret.VaultName -secretName $stampInfo.CloudAdminSecret.SecretName).SecretValue
-        $pepCred = New-Object System.Management.Automation.PSCredential $pepUser, $pepPassword
         $session = Get-PSSession -ComputerName $stampInfo.ErcsVMs -Credential $pepCred -Name $SessionName
         if ($session) {
             $session | Connect-PSSession | Out-Null
@@ -391,3 +399,25 @@ Function Get-UpdateProgress {
 }
 
 Export-ModuleMember -Function Get-UpdateProgress
+
+Function Get-StampInformation {
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Stamp
+    )
+    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
+    if (-NOT ($stampInfo)) {
+        Write-Host -ForegroundColor Cyan "Stamp $Stamp not found"
+        return
+    }
+    $pep = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs }
+    if (!$pep) {
+        $pep = Get-PepSession -Stamp $Stamp
+    }
+    $info = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackStampInformation }
+    $info
+}
+
+Export-ModuleMember -Function Get-StampInformation
