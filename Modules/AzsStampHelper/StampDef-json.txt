@@ -5,9 +5,9 @@
             "Region": "Azure Stack region",
             "ExternalFqdnDomain": "Azure Stack fqdn ",
             "ErcsVMs": [
-                "10.118.142.224",
-                "10.118.142.225",
-                "10.118.142.226"
+                "ERCS IP",
+                "ERCS IP",
+                "ERCS IP"
             ],
             "AdminUser": {
                 "UserName": "Username for using admin endpoint",
