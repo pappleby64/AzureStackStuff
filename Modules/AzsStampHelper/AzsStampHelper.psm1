@@ -210,7 +210,7 @@ Function Connect-AzureStackPortal {
 
     if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
         (GetKeyVaultSecret -valultName $user.VaultName -secretName $user.SecretName ).SecretValueText | clip.exe
-        Write-Host -ForegroundColor Cyan "Login using account $user.UserName The password is on the clipboard"
+        Write-Host -ForegroundColor Cyan "Login using account $($user.UserName) The password is on the clipboard"
         Write-Host -ForegroundColor Cyan "Press any key to launch $Browser"
     }
     Start-Process -FilePath $processPath -ArgumentList $url
@@ -236,8 +236,7 @@ Function Get-PepSession {
 
     $pepUser = $stampInfo.CloudAdminUser
     $pepUserName = $pepUser.UserName
-    $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
-    $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
+
 
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $stampInfo.ErcsVMs -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
@@ -247,6 +246,8 @@ Function Get-PepSession {
             }
 
         if (!$session) {
+            $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
+            $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('hhmm')
             foreach ($pepip in $stampInfo.ErcsVMs) { 
                 Write-Host -ForegroundColor Cyan "Creating PEP session on $Stamp using IP $pepip"
@@ -261,6 +262,8 @@ Function Get-PepSession {
         }  
     }
     else {
+        $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
+        $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
         $session = Get-PSSession -ComputerName $stampInfo.ErcsVMs -Credential $pepCred -Name $SessionName
         if ($session) {
             $session | Connect-PSSession | Out-Null
@@ -395,7 +398,9 @@ Function Get-UpdateProgress {
             Write-Output ("{0,-8} {1,-10}  {2,-10}   {3}" -f $_.FullStepIndex, $duration, $_.Status, $_.Description)
         }
     }
-    $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
+    if ($status) {
+        $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
+        }
 }
 
 Export-ModuleMember -Function Get-UpdateProgress
