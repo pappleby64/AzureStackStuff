@@ -43,6 +43,51 @@
 
 Export-ModuleMember -Function Get-ArmToken
 
+function Get-GraphToken {
+
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        $ArmEndpoint,
+        [Parameter(Mandatory = $false)]
+        $TenantId = 'Common',
+        [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
+        $Username,
+        [Parameter(Mandatory = $true, ParameterSetName = "UserName")]
+        $Password,
+        [Parameter(Mandatory = $true, ParameterSetName = "SecretSP")]
+        [Parameter(Mandatory = $true, ParameterSetName = "CertSP")]
+        $AppId,
+        [Parameter(Mandatory = $true, ParameterSetName = "SecretSP")]
+        $AppSecret,
+        [Parameter(Mandatory = $true, ParameterSetName = "CertSP")]
+        $Cert,
+        [Parameter(Mandatory = $true, ParameterSetName = "RefreshToken")]
+        $RefreshToken
+    )
+
+    $metadataEndpoint = "{0}/metadata/endpoints?api-version=2015-01-01" -f $ArmEndpoint
+    $armMetedata = Invoke-RestMethod -Uri $metadataEndpoint
+    $loginEndpoint = $armMetedata.authentication.loginEndpoint
+    if ($loginEndpoint -like '*/adfs') {
+        $adMetadataUri = "{0}/.well-known/openid-configuration" -f $loginEndpoint
+        }
+    else {
+        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint,$TenantId
+        }
+    $adMetadata = Invoke-RestMethod -Uri $adMetadataUri
+    $tokenEndpoint = $adMetadata.token_endpoint
+    $params = $PSBoundParameters
+    $params.Remove('ArmEndpoint') | Out-Null
+    $params.Remove('TenantId') | Out-Null
+    $params.Add('Resource',$armMetedata.graphEndpoint)
+    $params.Add('TokenEndpoint',$tokenEndpoint)
+    $token = Get-ResourceToken @params
+    $token
+}
+
+Export-ModuleMember -Function Get-GraphToken
+
 function Get-ResourceToken {
     Param
     (
