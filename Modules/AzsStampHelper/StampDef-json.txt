@@ -16,7 +16,7 @@
                 "SecretName": "secret name - if not present use interactive login"
             },
             "TenantUser": {
-                "UserName": "tenant@tvplenovoazs.onmicrosoft.com",
+                "UserName": "USername for tenant endpoint",
                 "TenantId": "tenant ID required if using guest account",
                 "VaultName": "keyvault name- if not present use interactive login",
                 "SecretName": "secret name- if not present use interactive login"
