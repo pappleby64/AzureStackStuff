@@ -72,34 +72,34 @@ Function GetKeyVaultSecret {
     $kvsecret
 }
 
-function GetUserCredential{
+function GetUserCredential {
     param
     (
-    $user
+        $user
     )
      
-     $password = (GetKeyVaultSecret -valultName $user.VaultName -SecretName $user.SecretName ).SecretValue
-     $cred = New-Object System.Management.Automation.PSCredential $user.UserName, $Password
-     $cred
+    $password = (GetKeyVaultSecret -valultName $user.VaultName -SecretName $user.SecretName ).SecretValue
+    $cred = New-Object System.Management.Automation.PSCredential $user.UserName, $Password
+    $cred
 }
 
 Function ConnectAzureStackUser {
     Param
     (
-    $User,
-    $Environment
+        $User,
+        $Environment
     )
 
-    $accountParams= @{}
-    $accountParams.Add('Environment',$Environment)
+    $accountParams = @{ }
+    $accountParams.Add('Environment', $Environment)
 
     if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
-        $accountParams.Add('Credential',(GetUserCredential $User))
+        $accountParams.Add('Credential', (GetUserCredential $User))
     }
 
     if (![String]::IsNullOrEmpty($User.TenantId)) {
-        $accountParams.Add('Tenant',$User.TenantId)
-        }
+        $accountParams.Add('Tenant', $User.TenantId)
+    }
 
     $result = Add-AzureRmAccount @accountParams
     $result.Context 
@@ -243,7 +243,7 @@ Function Get-PepSession {
         if ($session.State -ne [System.Management.Automation.Runspaces.RunspaceState]::Opened) {
             $session | Remove-PSSession -ErrorAction SilentlyContinue | Out-Null
             $session = $null
-            }
+        }
 
         if (!$session) {
             $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
@@ -407,36 +407,36 @@ Function Add-Stamp {
         $CloudAdminSecretName
     )
 
-    if ($StampDef.Stamps | Where-Object {$_.Name -eq $Name}) {
+    if ($StampDef.Stamps | Where-Object { $_.Name -eq $Name }) {
         Write-Host "Stamp $Name already exists"
         return
-        }
+    }
 
-     $adminUser = [PSCustomObject]@{
-        "UserName"=$AdminUserName
-        "TenantId"=$AdminUserTenantid
-        "VaultName"=$AdminUserVaultName
-        "SecretName"=$AdminUserSecretName
+    $adminUser = [PSCustomObject]@{
+        "UserName"   = $AdminUserName
+        "TenantId"   = $AdminUserTenantid
+        "VaultName"  = $AdminUserVaultName
+        "SecretName" = $AdminUserSecretName
     }
     $TenantUser = [PSCustomObject]@{
-        "UserName"=$TenantUserName
-        "TenantId" = $TenantUserTenantid
-        "VaultName"=$TenantUserVaultName
-        "SecretName"=$TenantUserSecretName
+        "UserName"   = $TenantUserName
+        "TenantId"   = $TenantUserTenantid
+        "VaultName"  = $TenantUserVaultName
+        "SecretName" = $TenantUserSecretName
     }
     $CloudAdminUser = [PSCustomObject]@{
-        "UserName"=$CloudAdminUserName
-        "VaultName"=$CloudAdminVaultName
-        "SecretName"=$CloudAdminSecretName
+        "UserName"   = $CloudAdminUserName
+        "VaultName"  = $CloudAdminVaultName
+        "SecretName" = $CloudAdminSecretName
     }
-     $newStamp =  [PSCustomObject]@{
-        "Name"=$Name
-        "Region"=$Region
-        "ExternalFqdnDomain"=$fqdn
-        "ErcsVMs" = $ercsVm
-        "AdminUser" = $adminUser
-        "TenantUser" = $TenantUser
-        "CloudAdminUser" = $CloudAdminUser
+    $newStamp = [PSCustomObject]@{
+        "Name"               = $Name
+        "Region"             = $Region
+        "ExternalFqdnDomain" = $fqdn
+        "ErcsVMs"            = $ercsVm
+        "AdminUser"          = $adminUser
+        "TenantUser"         = $TenantUser
+        "CloudAdminUser"     = $CloudAdminUser
     }
     $script:StampDef.Stamps += $newStamp
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
@@ -473,24 +473,24 @@ Function Set-Stamp {
         [string]
         $CloudAdminSecretName
     )
-    $stamp = $StampDef.Stamps | Where-Object {$_.Name -eq $Name}
+    $stamp = $StampDef.Stamps | Where-Object { $_.Name -eq $Name }
     if (-not $stamp) {
         Write-Host "Stamp $Name does not exist please use Add-Stamp"
         return
-        }
-    if ($AdminUserName) {$stamp.AdminUser.UserName = $AdminUserName}
-    if ($AdminUserTenantid) {$stamp.AdminUser.TenantId = $AdminUserTenantid}
-    if ($AdminUserVaultName) {$stamp.AdminUser.VaultName = $AdminUserVaultName}
-    if ($AdminUserSecretName) {$stamp.AdminUser.SecretName = $AdminUserSecretName}
+    }
+    if ($AdminUserName) { $stamp.AdminUser.UserName = $AdminUserName }
+    if ($AdminUserTenantid) { $stamp.AdminUser.TenantId = $AdminUserTenantid }
+    if ($AdminUserVaultName) { $stamp.AdminUser.VaultName = $AdminUserVaultName }
+    if ($AdminUserSecretName) { $stamp.AdminUser.SecretName = $AdminUserSecretName }
 
-    if ($TenantUserName) {$stamp.TenantUser.UserName = $TenantUserName}
-    if ($TenantUserTenantid) {$stamp.TenantUser.TenantId = $TenantUserTenantid}
-    if ($TenantUserVaultName) {$stamp.TenantUser.VaultName = $TenantUserVaultName}
-    if ($TenantUserSecretName) {$stamp.TenantUser.SecretName = $TenantUserSecretName}
+    if ($TenantUserName) { $stamp.TenantUser.UserName = $TenantUserName }
+    if ($TenantUserTenantid) { $stamp.TenantUser.TenantId = $TenantUserTenantid }
+    if ($TenantUserVaultName) { $stamp.TenantUser.VaultName = $TenantUserVaultName }
+    if ($TenantUserSecretName) { $stamp.TenantUser.SecretName = $TenantUserSecretName }
 
-    if ($CloudAdminUserName) {$stamp.CloudAdminUser.UserName = $CloudAdminUserName}
-    if ($CloudAdminVaultName) {$stamp.CloudAdminUser.VaultName = $CloudAdminVaultName}
-    if ($CloudAdminSecretName) {$stamp.CloudAdminUser.SecretName = $CloudAdminSecretName}
+    if ($CloudAdminUserName) { $stamp.CloudAdminUser.UserName = $CloudAdminUserName }
+    if ($CloudAdminVaultName) { $stamp.CloudAdminUser.VaultName = $CloudAdminVaultName }
+    if ($CloudAdminSecretName) { $stamp.CloudAdminUser.SecretName = $CloudAdminSecretName }
 
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
 }
@@ -504,9 +504,9 @@ Function Remove-Stamp {
         [string]
         $Name
     )
-   $stamps=  $StampDef.Stamps| Where-Object { $_.Name -ne $Name }
-   $script:StampDef.Stamps =$stamps
-   ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+    $stamps = $StampDef.Stamps | Where-Object { $_.Name -ne $Name }
+    $script:StampDef.Stamps = $stamps
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
 }
 
 Export-ModuleMember -Function Remove-Stamp
@@ -543,7 +543,7 @@ Function Get-UpdateProgress {
     }
     if ($status) {
         $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
-        }
+    }
 }
 
 Export-ModuleMember -Function Get-UpdateProgress
