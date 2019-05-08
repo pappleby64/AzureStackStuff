@@ -190,12 +190,12 @@ Function Connect-AzureStackPortal {
 
 
     if ($Tenant) {
-        $url = 'https://portal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
         $user = $stampInfo.TenantUser
+        $url = 'https://portal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $user.TenantId
     }
     else {
-        $url = 'https://adminportal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $stampInfo.TenantId
         $user = $stampInfo.AdminUser
+        $url = 'https://adminportal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $user.TenantId
     }
 
     $processPath = ''
@@ -367,6 +367,149 @@ Function Get-Stamps {
 }
 
 Export-ModuleMember -Function Get-Stamps
+
+Function Add-Stamp {
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Name,
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Region,
+        [Parameter(Mandatory = $true)]
+        [string]
+        $fqdn,
+        [Parameter(Mandatory = $true)]
+        [string[]]
+        $ercsVm,
+        [string]
+        $AdminUserName,
+        [string]
+        $AdminUserTenantid,
+        [string]
+        $AdminUserVaultName,
+        [string]
+        $AdminUserSecretName,
+        [string]
+        $TenantUserName,
+        [string]
+        $TenantUserTenantid,
+        [string]
+        $TenantUserVaultName,
+        [string]
+        $TenantUserSecretName,
+        [string]
+        $CloudAdminUserName,
+        [string]
+        $CloudAdminVaultName,
+        [string]
+        $CloudAdminSecretName
+    )
+
+    if ($StampDef.Stamps | Where-Object {$_.Name -eq $Name}) {
+        Write-Host "Stamp $Name already exists"
+        return
+        }
+
+     $adminUser = [PSCustomObject]@{
+        "UserName"=$AdminUserName
+        "TenantId"=$AdminUserTenantid
+        "VaultName"=$AdminUserVaultName
+        "SecretName"=$AdminUserSecretName
+    }
+    $TenantUser = [PSCustomObject]@{
+        "UserName"=$TenantUserName
+        "TenantId" = $TenantUserTenantid
+        "VaultName"=$TenantUserVaultName
+        "SecretName"=$TenantUserSecretName
+    }
+    $CloudAdminUser = [PSCustomObject]@{
+        "UserName"=$CloudAdminUserName
+        "VaultName"=$CloudAdminVaultName
+        "SecretName"=$CloudAdminSecretName
+    }
+     $newStamp =  [PSCustomObject]@{
+        "Name"=$Name
+        "Region"=$Region
+        "ExternalFqdnDomain"=$fqdn
+        "ErcsVMs" = $ercsVm
+        "AdminUser" = $adminUser
+        "TenantUser" = $TenantUser
+        "CloudAdminUser" = $CloudAdminUser
+    }
+    $script:StampDef.Stamps += $newStamp
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+}
+
+Export-ModuleMember -Function Add-Stamp
+
+Function Set-Stamp {
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Name,
+        [string]
+        $AdminUserName,
+        [string]
+        $AdminUserTenantid,
+        [string]
+        $AdminUserVaultName,
+        [string]
+        $AdminUserSecretName,
+        [string]
+        $TenantUserName,
+        [string]
+        $TenantUserTenantid,
+        [string]
+        $TenantUserVaultName,
+        [string]
+        $TenantUserSecretName,
+        [string]
+        $CloudAdminUserName,
+        [string]
+        $CloudAdminVaultName,
+        [string]
+        $CloudAdminSecretName
+    )
+    $stamp = $StampDef.Stamps | Where-Object {$_.Name -eq $Name}
+    if (-not $stamp) {
+        Write-Host "Stamp $Name does not exist please use Add-Stamp"
+        return
+        }
+    if ($AdminUserName) {$stamp.AdminUser.UserName = $AdminUserName}
+    if ($AdminUserTenantid) {$stamp.AdminUser.TenantId = $AdminUserTenantid}
+    if ($AdminUserVaultName) {$stamp.AdminUser.VaultName = $AdminUserVaultName}
+    if ($AdminUserSecretName) {$stamp.AdminUser.SecretName = $AdminUserSecretName}
+
+    if ($TenantUserName) {$stamp.TenantUser.UserName = $TenantUserName}
+    if ($TenantUserTenantid) {$stamp.TenantUser.TenantId = $TenantUserTenantid}
+    if ($TenantUserVaultName) {$stamp.TenantUser.VaultName = $TenantUserVaultName}
+    if ($TenantUserSecretName) {$stamp.TenantUser.SecretName = $TenantUserSecretName}
+
+    if ($CloudAdminUserName) {$stamp.CloudAdminUser.UserName = $CloudAdminUserName}
+    if ($CloudAdminVaultName) {$stamp.CloudAdminUser.VaultName = $CloudAdminVaultName}
+    if ($CloudAdminSecretName) {$stamp.CloudAdminUser.SecretName = $CloudAdminSecretName}
+
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+}
+
+Export-ModuleMember -Function Set-Stamp
+
+Function Remove-Stamp {
+    Param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $Name
+    )
+   $stamps=  $StampDef.Stamps| Where-Object { $_.Name -ne $Name }
+   $script:StampDef.Stamps =$stamps
+   ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+}
+
+Export-ModuleMember -Function Remove-Stamp
 
 Function Get-UpdateProgress {
     Param
