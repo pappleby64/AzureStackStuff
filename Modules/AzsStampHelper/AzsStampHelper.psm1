@@ -487,19 +487,19 @@ Function Set-Stamp {
         Write-Host "Stamp $Name does not exist please use Add-Stamp"
         return
     }
-    if ($AdminUserName) { $stamp.AdminUser.UserName = $AdminUserName }
-    if ($AdminUserTenantid) { $stamp.AdminUser.TenantId = $AdminUserTenantid }
-    if ($AdminUserVaultName) { $stamp.AdminUser.VaultName = $AdminUserVaultName }
-    if ($AdminUserSecretName) { $stamp.AdminUser.SecretName = $AdminUserSecretName }
+    if ($PSBoundParameters.Keys -contains "AdminUserName") { $stamp.AdminUser.UserName = $AdminUserName }
+    if ($PSBoundParameters.Keys -contains "AdminUserTenantid") { $stamp.AdminUser.TenantId = $AdminUserTenantid }
+    if ($PSBoundParameters.Keys -contains "AdminUserVaultName") { $stamp.AdminUser.VaultName = $AdminUserVaultName }
+    if ($PSBoundParameters.Keys -contains "AdminUserSecretName") { $stamp.AdminUser.SecretName = $AdminUserSecretName }
 
-    if ($TenantUserName) { $stamp.TenantUser.UserName = $TenantUserName }
-    if ($TenantUserTenantid) { $stamp.TenantUser.TenantId = $TenantUserTenantid }
-    if ($TenantUserVaultName) { $stamp.TenantUser.VaultName = $TenantUserVaultName }
-    if ($TenantUserSecretName) { $stamp.TenantUser.SecretName = $TenantUserSecretName }
+    if ($PSBoundParameters.Keys -contains "TenantUserName") { $stamp.TenantUser.UserName = $TenantUserName }
+    if ($PSBoundParameters.Keys -contains "TenantUserTenantid") { $stamp.TenantUser.TenantId = $TenantUserTenantid }
+    if ($PSBoundParameters.Keys -contains "TenantUserVaultName") { $stamp.TenantUser.VaultName = $TenantUserVaultName }
+    if ($PSBoundParameters.Keys -contains "TenantUserSecretName") { $stamp.TenantUser.SecretName = $TenantUserSecretName }
 
-    if ($CloudAdminUserName) { $stamp.CloudAdminUser.UserName = $CloudAdminUserName }
-    if ($CloudAdminVaultName) { $stamp.CloudAdminUser.VaultName = $CloudAdminVaultName }
-    if ($CloudAdminSecretName) { $stamp.CloudAdminUser.SecretName = $CloudAdminSecretName }
+    if ($PSBoundParameters.Keys -contains "CloudAdminUserName") { $stamp.CloudAdminUser.UserName = $CloudAdminUserName }
+    if ($PSBoundParameters.Keys -contains "CloudAdminVaultName") { $stamp.CloudAdminUser.VaultName = $CloudAdminVaultName }
+    if ($PSBoundParameters.Keys -contains "CloudAdminSecretName") { $stamp.CloudAdminUser.SecretName = $CloudAdminSecretName }
 
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
 }
