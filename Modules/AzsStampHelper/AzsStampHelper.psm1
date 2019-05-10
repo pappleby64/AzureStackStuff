@@ -10,6 +10,12 @@ if (!(Test-Path $settingsFolder)) {
 if (Test-Path $settingsFile) {
     $StampDef = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
 }
+else {
+    $stamps = @()
+    $StampDef = [PSCustomObject]@{
+        "Stamps" = $stamps
+    }
+}
 
 
 Function GetEnvironment {
@@ -438,7 +444,10 @@ Function Add-Stamp {
         "TenantUser"         = $TenantUser
         "CloudAdminUser"     = $CloudAdminUser
     }
-    $script:StampDef.Stamps += $newStamp
+    [System.Collections.ArrayList]$ArrayList = @()
+    $StampDef.Stamps | ForEach-Object { $ArrayList += $_ }
+    $ArrayList += $newStamp
+    $script:StampDef.Stamps = $ArrayList
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
 }
 
