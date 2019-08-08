@@ -440,6 +440,8 @@ Function Add-Stamp {
         [string]
         $TenantUserSecretName,
         [string]
+        $TenantUserSubscription,
+        [string]
         $CloudAdminUserName,
         [string]
         $CloudAdminVaultName,
@@ -457,12 +459,14 @@ Function Add-Stamp {
         "TenantId"   = $AdminUserTenantid
         "VaultName"  = $AdminUserVaultName
         "SecretName" = $AdminUserSecretName
+        "Subscription" = 'Default Provider Subscription'
     }
     $TenantUser = [PSCustomObject]@{
         "UserName"   = $TenantUserName
         "TenantId"   = $TenantUserTenantid
         "VaultName"  = $TenantUserVaultName
         "SecretName" = $TenantUserSecretName
+        "Subscription" = $TenantUserSubscription
     }
     $CloudAdminUser = [PSCustomObject]@{
         "UserName"   = $CloudAdminUserName
@@ -482,7 +486,7 @@ Function Add-Stamp {
     $StampDef.Stamps | ForEach-Object { $ArrayList += $_ }
     $ArrayList += $newStamp
     $script:StampDef.Stamps = $ArrayList
-    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
 Export-ModuleMember -Function Add-Stamp
@@ -507,6 +511,8 @@ Function Set-Stamp {
         [string]
         $TenantUserTenantid,
         [string]
+        $TenantUserSubscription,
+        [string]
         $TenantUserVaultName,
         [string]
         $TenantUserSecretName,
@@ -526,6 +532,7 @@ Function Set-Stamp {
 
     if ($PSBoundParameters.Keys -contains "TenantUserName") { $stamp.TenantUser.UserName = $TenantUserName }
     if ($PSBoundParameters.Keys -contains "TenantUserTenantid") { $stamp.TenantUser.TenantId = $TenantUserTenantid }
+    if ($PSBoundParameters.Keys -contains "TenantUserSubscription") { $stamp.TenantUser.Subscription = $TenantUserSubscription }
     if ($PSBoundParameters.Keys -contains "TenantUserVaultName") { $stamp.TenantUser.VaultName = $TenantUserVaultName }
     if ($PSBoundParameters.Keys -contains "TenantUserSecretName") { $stamp.TenantUser.SecretName = $TenantUserSecretName }
 
@@ -533,7 +540,7 @@ Function Set-Stamp {
     if ($PSBoundParameters.Keys -contains "CloudAdminVaultName") { $stamp.CloudAdminUser.VaultName = $CloudAdminVaultName }
     if ($PSBoundParameters.Keys -contains "CloudAdminSecretName") { $stamp.CloudAdminUser.SecretName = $CloudAdminSecretName }
 
-    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
 Export-ModuleMember -Function Set-Stamp
@@ -548,10 +555,40 @@ Function Remove-Stamp {
     )
     $stamps = $StampDef.Stamps | Where-Object { $_.Name -ne $Name }
     $script:StampDef.Stamps = $stamps
-    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
 Export-ModuleMember -Function Remove-Stamp
+
+Function Set-AzureSubscription {
+    Param
+    (
+        [string]
+        $cloud='AzureCloud',
+        [string]
+        $Tenantid,
+        [string]
+        $Subscription
+    )
+
+    $AzureCloud = $StampDef.AzureCloud
+    if ($null -eq $AzureCloud) {
+        $AzureCloud = [PSCustomObject]@{
+            "Cloud" = "AzureCloud"
+            "TenantId"=""
+            "Subscription"=""
+            }
+        Add-Member -InputObject $StampDef -MemberType NoteProperty -Name 'AzureCloud' -Value $AzureCloud
+        }
+
+    if ($PSBoundParameters.Keys -contains "cloud") { $StampDef.AzureCloud.Cloud = $cloud }
+    if ($PSBoundParameters.Keys -contains "Tenantid") { $StampDef.AzureCloud.TenantId = $Tenantid }
+    if ($PSBoundParameters.Keys -contains "Subscription") { $StampDef.AzureCloud.Subscription= $Subscription }
+
+    ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
+}
+
+Export-ModuleMember -Function Set-AzureSubscription
 
 Function Get-UpdateProgress {
     Param
