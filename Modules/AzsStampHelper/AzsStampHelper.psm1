@@ -20,12 +20,12 @@ else {
 Function ValidateStampName {
     Param
     (
-    [string]
-    $stamp
+        [string]
+        $stamp
     )
     if ($StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }) {
         $true
-        }
+    }
     else {
         throw "Unkown Stamp, Use Get-Stamps to list available stamps"
     }
@@ -73,7 +73,7 @@ Function GetKeyVaultSecret {
     if (!$kvContext) {
         Write-Host -ForegroundColor Cyan "Login to Azure is required to access Credentials in Key Vault"
         return
-        }
+    }
     $kvsecret = Get-AzureKeyVaultSecret -VaultName $valultName -Name $secretName -ErrorAction SilentlyContinue
     if ($oldContext) {
         $oldContext | Select-AzureRmContext | Out-Null
@@ -90,7 +90,7 @@ function GetUserCredential {
     $password = (GetKeyVaultSecret -valultName $user.VaultName -SecretName $user.SecretName ).SecretValue
     if ($password) {
         $cred = New-Object System.Management.Automation.PSCredential $user.UserName, $Password 
-        }
+    }
     $cred
 }
 
@@ -132,22 +132,23 @@ Export-ModuleMember -Function Prompt
 
 Function Connect-Azure {
     $cloud = $StampDef.AzureCloud.Cloud
-    if ([string]::IsNullOrEmpty($cloud)) {$cloud = 'AzureCloud'}
+    if ([string]::IsNullOrEmpty($cloud)) { $cloud = 'AzureCloud' }
     $tenant = $StampDef.AzureCloud.TenantId
     $sub = $StampDef.AzureCloud.Subscription
-    $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object {($_.Environment).Name -eq $cloud}
-    if (-not [string]::IsNullOrEmpty($tenant)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object {($_.Tenant).Id -eq $tenant}}
-    if (-not [string]::IsNullOrEmpty($sub)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object {($_.Subscription).Name -eq $sub}}
-    $ctx | Select-Object -First 1
+    $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Environment).Name -eq $cloud }
+    if (-not [string]::IsNullOrEmpty($tenant)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Tenant).Id -eq $tenant } }
+    if (-not [string]::IsNullOrEmpty($sub)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Subscription).Name -eq $sub } }
+    if (-not [string]::IsNullOrEmpty($sub)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Subscription).Id -eq $sub } }
+    $ctx = $ctx | Select-Object -First 1
 
     if ($ctx) {
         $ctx | Select-AzureRmContext | Out-Null
     }
     else {
-        $AccountParams = @{}
-        if (-not [string]::IsNullOrEmpty($cloud)) {$AccountParams.Add("EnvironmentName",$cloud)}
-        if (-not [string]::IsNullOrEmpty($tenant)) {$AccountParams.Add("Tenant",$tenant)}
-        if (-not [string]::IsNullOrEmpty($sub)) {$AccountParams.Add("Subscription",$sub)}
+        $AccountParams = @{ }
+        if (-not [string]::IsNullOrEmpty($cloud)) { $AccountParams.Add("EnvironmentName", $cloud) }
+        if (-not [string]::IsNullOrEmpty($tenant)) { $AccountParams.Add("Tenant", $tenant) }
+        if (-not [string]::IsNullOrEmpty($sub)) { $AccountParams.Add("Subscription", $sub) }
         $account = Add-AzureRmAccount @AccountParams
         $ctx = $account.Context
     }
@@ -160,7 +161,7 @@ Function Connect-AzureStack {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Switch]
@@ -197,7 +198,7 @@ Function Connect-AzureStackPortal {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Switch]
@@ -230,7 +231,7 @@ Function Get-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false, ParameterSetName = 'SessionName')]
@@ -247,20 +248,19 @@ Function Get-PepSession {
     )
     $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     $pepUser = $stampInfo.CloudAdminUser
-    $pepUserName = $pepUser.UserName
+ 
     
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
         if (![String]::IsNullOrEmpty($ErcsVM)) {
-            switch ($ErcsVM)
-            {
-                'ERCS01' {$vms = $stampInfo.ErcsVMs[0]}
-                'ERCS02' {$vms = $stampInfo.ErcsVMs[1]}
-                'ERCS03' {$vms = $stampInfo.ErcsVMs[2]}
+            switch ($ErcsVM) {
+                'ERCS01' { $vms = $stampInfo.ErcsVMs[0] }
+                'ERCS02' { $vms = $stampInfo.ErcsVMs[1] }
+                'ERCS03' { $vms = $stampInfo.ErcsVMs[2] }
             }
         }
         else {
             $vms = $stampInfo.ErcsVMs
-            }      
+        }      
 
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $vms -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
 
@@ -270,7 +270,7 @@ Function Get-PepSession {
             $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
             if ($pepPassword) {
                 $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
-                }
+            }
             else {
                 Write-Host -ForegroundColor Cyan "Enter PEP credential"
                 $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
@@ -306,7 +306,7 @@ Function Enter-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false)]
@@ -328,11 +328,11 @@ Function Unlock-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
     )
-    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
+
     $pep = Get-PepSession -Stamp $Stamp
     $token = Invoke-Command -Session $pep { Get-supportSessionToken } 
     Write-Host $token
@@ -351,7 +351,7 @@ Function Close-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false, ParameterSetName = 'All')]
@@ -376,7 +376,7 @@ Function Save-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
     )
@@ -455,17 +455,17 @@ Function Add-Stamp {
     }
 
     $adminUser = [PSCustomObject]@{
-        "UserName"   = $AdminUserName
-        "TenantId"   = $AdminUserTenantid
-        "VaultName"  = $AdminUserVaultName
-        "SecretName" = $AdminUserSecretName
+        "UserName"     = $AdminUserName
+        "TenantId"     = $AdminUserTenantid
+        "VaultName"    = $AdminUserVaultName
+        "SecretName"   = $AdminUserSecretName
         "Subscription" = 'Default Provider Subscription'
     }
     $TenantUser = [PSCustomObject]@{
-        "UserName"   = $TenantUserName
-        "TenantId"   = $TenantUserTenantid
-        "VaultName"  = $TenantUserVaultName
-        "SecretName" = $TenantUserSecretName
+        "UserName"     = $TenantUserName
+        "TenantId"     = $TenantUserTenantid
+        "VaultName"    = $TenantUserVaultName
+        "SecretName"   = $TenantUserSecretName
         "Subscription" = $TenantUserSubscription
     }
     $CloudAdminUser = [PSCustomObject]@{
@@ -495,7 +495,7 @@ Function Set-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name,
         [string]
@@ -549,11 +549,14 @@ Function Remove-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name
     )
     $stamps = $StampDef.Stamps | Where-Object { $_.Name -ne $Name }
+    if ($stamps.count -eq 0) {
+        $stamps = @()
+    }
     $script:StampDef.Stamps = $stamps
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
@@ -564,7 +567,7 @@ Function Set-AzureSubscription {
     Param
     (
         [string]
-        $cloud='AzureCloud',
+        $cloud = 'AzureCloud',
         [string]
         $Tenantid,
         [string]
@@ -574,16 +577,16 @@ Function Set-AzureSubscription {
     $AzureCloud = $StampDef.AzureCloud
     if ($null -eq $AzureCloud) {
         $AzureCloud = [PSCustomObject]@{
-            "Cloud" = "AzureCloud"
-            "TenantId"=""
-            "Subscription"=""
-            }
-        Add-Member -InputObject $StampDef -MemberType NoteProperty -Name 'AzureCloud' -Value $AzureCloud
+            "Cloud"        = "AzureCloud"
+            "TenantId"     = ""
+            "Subscription" = ""
         }
+        Add-Member -InputObject $StampDef -MemberType NoteProperty -Name 'AzureCloud' -Value $AzureCloud
+    }
 
     if ($PSBoundParameters.Keys -contains "cloud") { $StampDef.AzureCloud.Cloud = $cloud }
     if ($PSBoundParameters.Keys -contains "Tenantid") { $StampDef.AzureCloud.TenantId = $Tenantid }
-    if ($PSBoundParameters.Keys -contains "Subscription") { $StampDef.AzureCloud.Subscription= $Subscription }
+    if ($PSBoundParameters.Keys -contains "Subscription") { $StampDef.AzureCloud.Subscription = $Subscription }
 
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
 }
@@ -594,7 +597,7 @@ Function Get-UpdateProgress {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Switch]
@@ -602,7 +605,6 @@ Function Get-UpdateProgress {
         [Switch]
         $InProgress
     )
-    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
 
     $pep = Get-PepSession -Stamp $Stamp
 
@@ -628,12 +630,12 @@ Function Get-UpdateProgress {
     }
     elseif ($InProgress) {
         if ($status) {
-            $status.SelectNodes("//Step") | Where-Object {$_.Status -notlike "Success"} | ForEach-Object $ScriptBlock
+            $status.SelectNodes("//Step") | Where-Object { $_.Status -notlike "Success" } | ForEach-Object $ScriptBlock
         }
     } 
     else {
         if ($status) {
-            $status.SelectNodes("//Step") | ft FullStepIndex, Index, Name, StartTimeUtc, Status, EndTimeUtc -AutoSize
+            $status.SelectNodes("//Step") | Format-Table FullStepIndex, Index, Name, StartTimeUtc, Status, EndTimeUtc -AutoSize
         }
     }
 }
@@ -644,7 +646,7 @@ Function Get-UpdateVerboseLog {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $true)]
@@ -652,7 +654,6 @@ Function Get-UpdateVerboseLog {
         $OutputPath
 
     )
-    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
 
     $pep = Get-PepSession -Stamp $Stamp
     Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateVerboseLog -FullLog } | Out-File $OutputPath -Force
@@ -664,7 +665,7 @@ Function Get-UpdateActionStatusXml {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $true)]
@@ -672,7 +673,7 @@ Function Get-UpdateActionStatusXml {
         $OutputPath
 
     )
-    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
+
     $pep = Get-PepSession -Stamp $Stamp
     Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus } | Out-File $OutputPath -Force
 }
@@ -683,11 +684,10 @@ Function Get-StampInformation {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
     )
-    $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
 
     $pep = Get-PepSession -Stamp $Stamp
     $info = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackStampInformation }
@@ -708,7 +708,7 @@ Function Set-WinRmTrustedHost {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
-        [Validatescript({ValidateStampName -Stamp $_})]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
         [Parameter(Mandatory = $false)]
@@ -720,7 +720,7 @@ Function Set-WinRmTrustedHost {
     if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
         Write-Host -ForegroundColor Cyan 'using Set-WinRmTrustedHost requires running PowerShell in Admin mode'
         return
-        }
+    }
 
     if ($Stamp) {
         $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
@@ -741,7 +741,7 @@ Function Set-WinRmTrustedHost {
         if ('*' -in $existingHosts) {
             Write-Host -ForegroundColor Cyan "Leaving existing wildcard"
             return 
-            }
+        }
         $trustedHostIPs += $existingHosts
     }
     $trustedHosts = ($trustedHostIPs | Sort-Object -Unique) -join ","
