@@ -138,7 +138,6 @@ Function Connect-Azure {
     $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Environment).Name -eq $cloud }
     if (-not [string]::IsNullOrEmpty($tenant)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Tenant).Id -eq $tenant } }
     if (-not [string]::IsNullOrEmpty($sub)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Subscription).Name -eq $sub } }
-    if (-not [string]::IsNullOrEmpty($sub)) { $ctx = Get-AzureRmContext -ListAvailable  -ErrorAction SilentlyContinue | Where-Object { ($_.Subscription).Id -eq $sub } }
     $ctx = $ctx | Select-Object -First 1
 
     if ($ctx) {
