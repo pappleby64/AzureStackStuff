@@ -52,7 +52,11 @@ Function GetEnvironment {
 
     $azEnv = Get-AzureRmEnvironment -Name $envName
     if (!$azEnv) {
-        $azEnv = Add-AzureRmEnvironment -Name $envName -ArmEndpoint $url 
+        $azEnv = Add-AzureRmEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
+    }
+
+    if (!$azEnv) {
+        throw "Unable to add ARM endpoint $url"
     }
     $azEnv
 }
