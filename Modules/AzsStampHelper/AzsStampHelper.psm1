@@ -279,9 +279,10 @@ Function Get-PepSession {
                 $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
             }
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('HHmm')
+            $usCulture = New-PSSessionOption -Culture en-US -UICulture en-US
             foreach ($pepip in $vms) { 
                 Write-Host -ForegroundColor Cyan "Creating PEP session on $Stamp using IP $pepip"
-                $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -ErrorAction SilentlyContinue
+                $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction SilentlyContinue
                 if ($session) {
                     break
                 }
