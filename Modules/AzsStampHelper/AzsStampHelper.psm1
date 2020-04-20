@@ -418,15 +418,18 @@ Function Add-Stamp {
         [Parameter(Mandatory = $true)]
         [string]
         $Name,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true,ParameterSetName = "region")]
         [string]
         $Region,
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true,ParameterSetName = "region")]
         [string]
-        $fqdn,
-        [Parameter(Mandatory = $true)]
+        $Fqdn,
+        [Parameter(Mandatory = $true,ParameterSetName = "regionfqdn")]
+        [string]
+        $ReqionFqdn,
+        [Parameter(Mandatory)]
         [string[]]
-        $ercsVm,
+        $ErcsVm,
         [string]
         $AdminUserName,
         [string]
@@ -476,6 +479,11 @@ Function Add-Stamp {
         "UserName"   = $CloudAdminUserName
         "VaultName"  = $CloudAdminVaultName
         "SecretName" = $CloudAdminSecretName
+    }
+    if ($reqionfqdn) {
+        $split = $reqionfqdn.Split('.')
+        $region = $split[0]
+        $fqdn = $split[1..-1] -join '.'
     }
     $newStamp = [PSCustomObject]@{
         "Name"               = $Name
