@@ -36,23 +36,28 @@ Function GetEnvironment {
     (
         [Parameter (Mandatory = $true)]
         $Stamp,
-        [Parameter (Mandatory = $true)]
-        [ValidateSet("Admin", "Tenant")] 
-        $EndPoint 
+        [Switch]
+        $Tenant
     )
 
     if ($Tenant) {
         $envName = '{0}-Tenant' -f $Stamp.Name
         $url = 'https://management.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvdns = 'adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvresourceId = 'https://adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+
     }
     else {
         $envName = '{0}-Admin' -f $Stamp.Name
         $url = 'https://adminmanagement.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvdns = 'vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvresourceId = 'https://vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
     }
 
-    $azEnv = Get-AzureRmEnvironment -Name $envName
+    $azEnv = Get-AzureRmEnvironment -Name $envName 
     if (!$azEnv) {
         $azEnv = Add-AzureRmEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
+        Set-AzureRmEnvironment -AzureKeyVaultDnsSuffix $kvdns -AzureKeyVaultServiceEndpointResourceId $kvresourceId
     }
 
     if (!$azEnv) {
@@ -173,11 +178,11 @@ Function Connect-AzureStack {
     $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
 
     if ($Tenant) {
-        $azEnv = GetEnvironment -Stamp $stampInfo -EndPoint Tenant
+        $azEnv = GetEnvironment -Stamp $stampInfo -Tenant
         $user = $stampInfo.TenantUser
     }
     else {
-        $azEnv = GetEnvironment -Stamp $stampInfo -EndPoint Admin
+        $azEnv = GetEnvironment -Stamp $stampInfo 
         $user = $stampInfo.AdminUser
     }
 
