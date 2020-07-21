@@ -43,15 +43,15 @@ Function GetEnvironment {
     if ($Tenant) {
         $envName = '{0}-Tenant' -f $Stamp.Name
         $url = 'https://management.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
-        $kvdns = 'adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
-        $kvresourceId = 'https://adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvdns = 'vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvresourceId = 'https://vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
 
     }
     else {
         $envName = '{0}-Admin' -f $Stamp.Name
         $url = 'https://adminmanagement.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
-        $kvdns = 'vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
-        $kvresourceId = 'https://vault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvdns = 'adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
+        $kvresourceId = 'https://adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
     }
 
     $azEnv = Get-AzEnvironment -Name $envName 
