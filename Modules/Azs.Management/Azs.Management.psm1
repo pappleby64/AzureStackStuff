@@ -1,12 +1,11 @@
 ﻿#Requires -Modules @{ ModuleName="Az.Accounts"; ModuleVersion="2.0" }
 $settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
 $settingsFile = "$settingsFolder\StampDef.json"
-$KeyVaultContext = "5a98258e-f211-418c-af21-1cbb3515eecb"
+
 
 if (!(Test-Path $settingsFolder)) {
     New-Item -ItemType Directory $settingsFolder | Out-Null
 }
-
 
 if (Test-Path $settingsFile) {
     $StampDef = Get-Content -Path $settingsFile -Raw | ConvertFrom-Json
@@ -125,12 +124,12 @@ Function ConnectAzureStackUser {
         $accountParams.Add('Subscription', $User.Subscription)
     }
     Write-Host -ForegroundColor Cyan "Connecting to Azure Stack $($Environment.Name), Enter Credentials if prompted"
-    $result = Add-AzAccount @accountParams -SkipContextPopulation
+    $result = Connect-AzAccount @accountParams -SkipContextPopulation -ContextName $Environment
     $result.Context 
 }
 
 Function Prompt {
-    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzContext).Environment.Name)]"
+    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzContext).Name)]"
     Write-Host -NoNewline "$(Get-Location)"
     return "> "
 }
@@ -138,7 +137,7 @@ Function Prompt {
 Export-ModuleMember -Function Prompt
 
 Function GetKeyVaultContext {
-    $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Name -eq $KeyVaultContext }
+    $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Name -eq 'KeyVaultContext' }
     if (!$ctx) {
         $cloud = $StampDef.KeyVaultCloud.Cloud
         if ([string]::IsNullOrEmpty($cloud)) { $cloud = 'AzureCloud' }
@@ -149,8 +148,8 @@ Function GetKeyVaultContext {
         if (-not [string]::IsNullOrEmpty($cloud)) { $AccountParams.Add("EnvironmentName", $cloud) }
         if (-not [string]::IsNullOrEmpty($tenant)) { $AccountParams.Add("Tenant", $tenant) }
         if (-not [string]::IsNullOrEmpty($sub)) { $AccountParams.Add("Subscription", $sub) }
-        $account = Add-AzAccount @AccountParams -SkipContextPopulation
-        $ctx = Get-AzContext | Rename-AzContext -TargetName $KeyVaultContext -PassThru
+        $result = Connect-AzAccount @AccountParams -SkipContextPopulation -ContextName 'KeyVaultContext'      
+        $ctx = $result.Context
     }
     $ctx
 }
@@ -177,7 +176,7 @@ Function Connect-AzureStack {
     }
 
     Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp ...."
-    $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -eq $azEnv.Name }
+    $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $azEnv.Name }
     if ($ctx) {
         Write-Host -ForegroundColor Cyan "Using existing AzContext for user $($ctx.Account.Id)"
         $ctx | Select-AzContext | Out-Null
@@ -264,10 +263,12 @@ Function Get-PepSession {
 
                         
         if (!$session) {
-            Write-Host -ForegroundColor Cyan "Accessing keyvault to retrieve pep credentials, Enter Azure Credentials if prompted"
-            $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
-            if ($pepPassword) {
-                $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
+            if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
+                Write-Host -ForegroundColor Cyan "Accessing keyvault to retrieve pep credentials, Enter Azure Credentials if prompted"
+                $pepPassword = GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName -ErrorAction SilentlyContinue
+                if ($pepPassword) {
+                    $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword.secretValue
+                    }
             }
             else {
                 Write-Host -ForegroundColor Cyan "Enter PEP credential"
@@ -385,7 +386,6 @@ Function Save-PepSession {
         Write-Host -ForegroundColor Cyan "Session $($Session.Name) saved"
         $session | Disconnect-PSSession 
     }
-    
 }
 
 Export-ModuleMember -Function Save-PepSession
@@ -781,13 +781,15 @@ function Unlock-RpSubscription {
         $Stamp,
         [Parameter (Mandatory = $true)]
         [String]
-        $ProductId
+        $ProductId,
+        [string]
+        $PrincipalId
     )
     
     $pep = Get-PepSession -Stamp $Stamp
     if (Test-Unlock -PepSession $pep) {
         Invoke-Command $pep { Import-Module Azs.DeploymentProvider.Security -ErrorAction Stop -Verbose }
-        #Invoke-Command $pep { Unlock-AzsProductSubscription -ProductId $Using:ProductId -PrincipalId $Using:principalId }
+        Invoke-Command $pep { Unlock-AzsProductSubscription -ProductId $Using:ProductId -PrincipalId $Using:PrincipalId }
     }
     else {
         Write-Host -ForegroundColor Cyan "PEP must be unlocked to perform this function"
