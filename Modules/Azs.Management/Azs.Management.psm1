@@ -598,7 +598,7 @@ Function Set-KeyVaultSubscription {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
 }
 
-Export-ModuleMember -Function Set-AzureSubscription
+Export-ModuleMember -Function Set-KeyVaultSubscription
 
 Function Get-UpdateProgress {
     Param
