@@ -785,7 +785,8 @@ function Unlock-RpSubscription {
         [string]
         $PrincipalId
     )
-    
+    Connect-AzureStack -Stamp $Stamp
+    $PrincipalId = Get-Principalid
     $pep = Get-PepSession -Stamp $Stamp
     if (Test-Unlock -PepSession $pep) {
         Invoke-Command $pep { Import-Module Azs.DeploymentProvider.Security -ErrorAction Stop -Verbose }
@@ -797,3 +798,20 @@ function Unlock-RpSubscription {
 }
 
 Export-ModuleMember -Function Unlock-RpSubscription
+
+function Get-Principalid
+{
+    $profile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+    $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($profile)
+    $token = $profileClient.AcquireAccessToken($profile.DefaultContext.Tenant.Id)
+    $segments = $token.AccessToken.Split('.')
+    $s = $segments[1]
+    if ($s.Length % 4 -ne 0) { $s = $s + [string]::new('=', 4 - $s.Length % 4) }
+    $s = $s.Replace('-', '+')
+    $s = $s.Replace('_', '/')
+    $json = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($s))
+    $json = $json.Replace('AppId', 'AppId2')
+    $payload = $json | ConvertFrom-Json
+    $principalId = $payload.oid
+    $principalId
+}
