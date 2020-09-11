@@ -27,7 +27,7 @@ Function ValidateStampName {
         $true
     }
     else {
-        throw "Unkown Stamp, Use Get-Stamps to list available stamps"
+        throw "Unkown Stamp, Use Get-Stamp to list available stamps"
     }
 }
 
@@ -158,6 +158,7 @@ Function Connect-AzureStack {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -195,6 +196,7 @@ Function Connect-AzureStackPortal {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -228,6 +230,7 @@ Function Get-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -306,6 +309,7 @@ Function Enter-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -328,6 +332,7 @@ Function Unlock-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -351,6 +356,7 @@ Function Close-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -376,6 +382,7 @@ Function Save-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -401,11 +408,11 @@ Function Clear-StampCache {
 
 Export-ModuleMember -Function Clear-StampCache
 
-Function Get-Stamps {
+Function Get-Stamp {
     $StampDef.Stamps
 }
 
-Export-ModuleMember -Function Get-Stamps
+Export-ModuleMember -Function Get-Stamp
 
 Function Add-Stamp {
     Param
@@ -502,6 +509,7 @@ Function Set-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name,
@@ -556,6 +564,7 @@ Function Remove-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name
@@ -604,6 +613,7 @@ Function Get-UpdateProgress {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -653,6 +663,7 @@ Function Get-UpdateVerboseLog {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -672,6 +683,7 @@ Function Get-UpdateActionStatusXml {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -691,6 +703,7 @@ Function Get-StampInformation {
     Param
     (
         [Parameter(Mandatory = $true)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -715,6 +728,7 @@ Function Set-WinRmTrustedHost {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -776,6 +790,7 @@ function Unlock-RpSubscription {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
+        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
