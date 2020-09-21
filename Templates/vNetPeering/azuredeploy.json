@@ -70,7 +70,7 @@
                         },
         "privateNicProps2": {
                             "subnet": {
-                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('vNet1Name')), '/subnets/subnet1')]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks',variables('vNet2Name')), '/subnets/subnet1')]"
                             },
                             "privateIPAllocationMethod": "Dynamic"
                         },
