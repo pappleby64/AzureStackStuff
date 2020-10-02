@@ -131,7 +131,7 @@ Function ConnectAzureStackUser {
 
     if (!$cred) {
         Write-Host ("$($localizedText.LogonToEnv)" -f $Environment.Name)
-        Read-Host "Press Enter to continue"
+        Read-Host "Press Enter to continue" | Out-Null
     }
     $result = Connect-AzAccount @accountParams -SkipContextPopulation -ContextName $Environment
     $result.Context 
@@ -147,7 +147,7 @@ Function GetKeyVaultContext {
     $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Name -eq 'KeyVaultContext' }
     if (!$ctx) {
         Write-Host $localizedText.KeyvaultLogon
-        Read-Host "Press Enter to continue"
+        Read-Host "Press Enter to continue" | Out-Null
         $cloud = $StampDef.KeyVaultCloud.Cloud
         if ([string]::IsNullOrEmpty($cloud)) { $cloud = 'AzureCloud' }
         $tenant = $StampDef.KeyVaultCloud.TenantId
@@ -252,7 +252,7 @@ Function Connect-AzureStackPortal {
         (GetKeyVaultSecret -valultName $user.VaultName -secretName $user.SecretName ).SecretValueText | clip.exe
         Write-Host -ForegroundColor Cyan "Login using account $($user.UserName) The password is on the clipboard"
         Write-Host -ForegroundColor Cyan "Press enter to launch $Browser"
-        Read-Host
+        Read-Host | Out-Null
     }
     Start-Process -FilePath  $url
 }
@@ -287,6 +287,9 @@ Function Connect-PepSession {
         )]
         [String]
         $ErcsVM,
+        [Parameter(Mandatory = $false)]
+        [System.Management.Automation.PSCredential]
+        $PepCredential,
         [Switch]
         $Force     
     )
@@ -351,7 +354,10 @@ Function Connect-PepSession {
                        
         if (!$session) {
             Write-Verbose "No open connections found, createing new one"
-            if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
+            if ($PepCredential) {
+                $pepCred = $PepCredential
+            }
+            elseif (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
                 Write-Verbose "Retrieving credential from key vault"
                 $pepPassword = GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName -ErrorAction SilentlyContinue
                 if ($pepPassword) {
@@ -360,7 +366,7 @@ Function Connect-PepSession {
             }
             else {
                 Write-Host ("$($localizedText.LogonPep)" -f $Stamp)
-                Read-Host "Press Enter to continue"
+                Read-Host "Press Enter to continue" | Out-Null
                 $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
             }
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('HHmm')
@@ -403,7 +409,9 @@ Function Enter-PepSession {
             'ERCS03'
         )]
         [String]
-        $ErcsVM       
+        $ErcsVM,
+        [System.Management.Automation.PSCredential]
+        $PepCredential     
     )
     $session = Connect-PepSession @PSBoundParameters
     if ($session) {
@@ -436,6 +444,7 @@ Function Unlock-PepSession {
 }
 
 Function Close-PepSession {
+    [CmdletBinding(DefaultParameterSetName = 'Single')]
     Param
     (
         [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
@@ -792,7 +801,6 @@ Function Get-UpdateActionStatusXml {
         [Parameter(Mandatory = $true)]
         [string]
         $OutputPath
-
     )
 
     $pep = Connect-PepSession -Stamp $Stamp
