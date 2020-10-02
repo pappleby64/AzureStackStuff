@@ -1,4 +1,7 @@
 ﻿#Requires -Modules @{ ModuleName="Az.Accounts"; ModuleVersion="2.0" }
+
+Import-LocalizedData LocalizedText -Filename Azs.Management.Strings.psd1 -ErrorAction SilentlyContinue
+
 $settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
 $settingsFile = "$settingsFolder\StampDef.json"
 
@@ -56,6 +59,7 @@ Function GetEnvironment {
 
     $azEnv = Get-AzEnvironment -Name $envName 
     if (!$azEnv) {
+        Write-Verbose "Adding new AzEnvironment $envName for endpoint $url"
         $azEnv = Add-AzEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
         Set-AzEnvironment -Name $envName -AzureKeyVaultDnsSuffix $kvdns -AzureKeyVaultServiceEndpointResourceId $kvresourceId | out-null
     }
@@ -79,7 +83,7 @@ Function GetKeyVaultSecret {
 
     $kvContext = GetKeyVaultContext
     if (!$kvContext) {
-        Write-Host -ForegroundColor Cyan "Login to Azure is required to access Credentials in Key Vault"
+        Write-Error  $localizedText.NoAzureContext
         return
     }
     $kvsecret = Get-AzKeyVaultSecret -VaultName $valultName -Name $secretName -DefaultProfile $kvContext -ErrorAction SilentlyContinue
@@ -111,34 +115,39 @@ Function ConnectAzureStackUser {
     $accountParams.Add('Environment', $Environment)
 
     if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
-        Write-Host -ForegroundColor Cyan "Accessing keyvault to retrieve credentials, Enter Azure Credentials if prompted"
         $cred = GetUserCredential -user $User
         if ($cred) { $accountParams.Add('Credential', $cred) }
     }
 
     if (![String]::IsNullOrEmpty($User.TenantId)) {
+        Write-Verbose "Adding tenantId $($user.TenantId)"
         $accountParams.Add('Tenant', $User.TenantId)
     }
 
     if (![String]::IsNullOrEmpty($User.Subscription)) {
+        Write-Verbose "Adding Subscription $($User.Subscription)"
         $accountParams.Add('Subscription', $User.Subscription)
     }
-    Write-Host -ForegroundColor Cyan "Connecting to Azure Stack $($Environment.Name), Enter Credentials if prompted"
+
+    if (!$cred) {
+        Write-Host ("$($localizedText.LogonToEnv)" -f $Environment.Name)
+        Read-Host "Press Enter to continue"
+    }
     $result = Connect-AzAccount @accountParams -SkipContextPopulation -ContextName $Environment
     $result.Context 
 }
 
 Function Prompt {
-    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzContext).Name)]"
+    Write-Host -ForegroundColor Cyan -NoNewline "[$((Get-AzContext).Environment.Name)]"
     Write-Host -NoNewline "$(Get-Location)"
     return "> "
 }
 
-Export-ModuleMember -Function Prompt
-
 Function GetKeyVaultContext {
     $ctx = Get-AzContext -ListAvailable | Where-Object { $_.Name -eq 'KeyVaultContext' }
     if (!$ctx) {
+        Write-Host $localizedText.KeyvaultLogon
+        Read-Host "Press Enter to continue"
         $cloud = $StampDef.KeyVaultCloud.Cloud
         if ([string]::IsNullOrEmpty($cloud)) { $cloud = 'AzureCloud' }
         $tenant = $StampDef.KeyVaultCloud.TenantId
@@ -155,10 +164,22 @@ Function GetKeyVaultContext {
 }
 
 Function Connect-AzureStack {
+    <#
+    .SYNOPSIS
+        Connects to the  Azure Stack HUb ARM endpoint
+    .DESCRIPTION
+        Connects to the Azure Stack Hub ARM endpoint, By default connects to Admin Arm endpooint. 
+        Use -Tenant to connect to tenant Arm enspoint
+    .EXAMPLE
+        PS C:\> Connect-AzureStack -Stamp MyStamp 
+        PS C:\> Connect-AzureStack -Stamp MyStamp -Tenant
+    .NOTES
+        Will use a credential from Key Valult if available and defined in the stamp settings
+#>
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -175,28 +196,39 @@ Function Connect-AzureStack {
         $azEnv = GetEnvironment -Stamp $stampInfo 
         $user = $stampInfo.AdminUser
     }
-
-    Write-Host -ForegroundColor Cyan "Connecting to AzureStack stamp $Stamp ...."
+    Write-Verbose "Connecting to Environment $($azEnv.Name) with user account $($user.userName)"
     $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq $azEnv.Name }
     if ($ctx) {
-        Write-Host -ForegroundColor Cyan "Using existing AzContext for user $($ctx.Account.Id)"
+        Write-Verbose  "Using existing AzContext for user $($ctx.Account.Id)"
         $ctx | Select-AzContext | Out-Null
     }
     else {
+        Write-Verbose "No exiting context found, creating context"
         $ctx = ConnectAzureStackUser -User $user -Environment $azEnv
     }
     if ($ctx.Environment.Name -eq $azEnv.Name -and $ctx.Account.Id -eq $user.UserName) {
-        Write-Host -ForegroundColor Cyan "Succesfully connected to $($azEnv.Name) as $($user.UserName)"
+        Write-Verbose  "Succesfully connected to $($azEnv.Name) as $($user.UserName)"
     }
 }
 
-Export-ModuleMember -Function Connect-AzureStack
-
 Function Connect-AzureStackPortal {
+    <#
+    .SYNOPSIS
+        Connects to the  Azure Stack HUb Portal
+    .DESCRIPTION
+        Connects to the Azure Stack Hub Portal, By default connects to Admin Portal. 
+        Use -Tenant to connect to Tenant Portal
+    .EXAMPLE
+        PS C:\> Connect-AzureStackPortal -Stamp MyStamp 
+        PS C:\> Connect-AzureStackPortal -Stamp MyStamp -Tenant
+    .NOTES
+        Will use a credential from Key Valult if available and defined in the stamp settings
+        The password will be placed on teh clipboard
+#>
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -214,8 +246,9 @@ Function Connect-AzureStackPortal {
         $user = $stampInfo.AdminUser
         $url = 'https://adminportal.{0}.{1}/{2}' -f $stampInfo.Region, $stampInfo.ExternalFqdnDomain, $user.TenantId
     }
-
+    Write-Verbose "Opening browser to Portal $url"
     if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
+        Write-Verbose "Retrieveing password for $($user.UserName) from keyvault"
         (GetKeyVaultSecret -valultName $user.VaultName -secretName $user.SecretName ).SecretValueText | clip.exe
         Write-Host -ForegroundColor Cyan "Login using account $($user.UserName) The password is on the clipboard"
         Write-Host -ForegroundColor Cyan "Press enter to launch $Browser"
@@ -224,13 +257,22 @@ Function Connect-AzureStackPortal {
     Start-Process -FilePath  $url
 }
 
-Export-ModuleMember -Function Connect-AzureStackPortal
-
-Function Get-PepSession {
+Function Connect-PepSession {
+    <#
+    .SYNOPSIS
+        Connects to the  Azure Stack Privileged Endpoint
+    .DESCRIPTION
+        Connects to the Azure Stack Hub Privileged Endpoint. Connect-PepSession will use an existing session if available.
+    .EXAMPLE
+        PS C:\> Connect-PepSession -Stamp MyStamp 
+    .NOTES
+        Will use a credential from Key Valult if available and defined in the stamp settings.
+#>    
+    [Alias("Get-PepSession")]
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -244,54 +286,97 @@ Function Get-PepSession {
             'ERCS03'
         )]
         [String]
-        $ErcsVM       
+        $ErcsVM,
+        [Switch]
+        $Force     
     )
     $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
     $pepUser = $stampInfo.CloudAdminUser
- 
+    Write-Verbose "Connecting to pep on environment $stamp with user $($pepUSer.UserName)"
     
     if ($PSCmdlet.ParameterSetName -ne 'SessionName') {
+
         if (![String]::IsNullOrEmpty($ErcsVM)) {
             switch ($ErcsVM) {
-                'ERCS01' { $vms = $stampInfo.ErcsVMs[0] }
-                'ERCS02' { $vms = $stampInfo.ErcsVMs[1] }
-                'ERCS03' { $vms = $stampInfo.ErcsVMs[2] }
+                'ERCS01' { $ercsIpList = $stampInfo.ErcsVMs[0] }
+                'ERCS02' { $ercsIpList = $stampInfo.ErcsVMs[1] }
+                'ERCS03' { $ercsIpList = $stampInfo.ErcsVMs[2] }
             }
         }
         else {
-            $vms = $stampInfo.ErcsVMs
-        }      
+            $ercsIpList = $stampInfo.ErcsVMs
+            Write-Verbose "Using following list of IP addresses $ercsIpList"
+        }    
+     
+        Write-Verbose "Checking WinRm running and configured"
+        if ((get-service -Name WinRm).Status -ne [ServiceProcess.ServiceControllerStatus]::Running) {
+            Write-Host $LocalizedText.WinRmNotRunning
+            return  
+        }
+    
+        [Security.Principal.WindowsPrincipal]$id = [Security.Principal.WindowsIdentity]::GetCurrent()
+        $isAdmin = $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        Write-Verbose "Current user running as admin $isAdmin"
+        if ($Force -and ($isAdmin -eq $false )) {
+            Write-Host $LocalizedText.ForceAdmin
+            return
+        }
 
-        $session = Get-PSSession | Where-Object { $_.ComputerName -in $vms -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
+        $currentTrustedHostsValue = (Get-Item WSMan:\localhost\Client\TrustedHosts).Value
+        Write-Verbose "Current Trusted Host Value $currentTrustedHostsValue"
+        $hostlist = @()
+        if (-not [String]::IsNullOrEmpty($currentTrustedHostsValue)) {
+            $hostlist += $currentTrustedHostsValue.split(',')
+        }
 
-                        
+        $hostpresent = $true
+        $wildcard = ($hostlist -contains '*')
+        $ercsIpList | ForEach-Object { if ($hostlist -notcontains $_) { $hostpresent = $false } }
+        if (-not ($wildcard -or $hostpresent)) {
+            Write-Verbose "Trusted Hosts does not include wildcard or required IP addresses"
+            if ($Force -and $isAdmin) {
+                $hostlist += $ercsIpList
+                $newlist = ($hostlist | Sort-Object -Unique) -join ","
+                Write-Verbose "new Value for TrustedHosts is $newlist"
+                Set-Item WSMan:\localhost\Client\TrustedHosts -Value $newlist -Confirm:$false -Force
+            }
+            else {
+                Write-Host $LocalizedText.TrustedHost
+                return
+            }
+        }
+        
+        Write-Verbose "Checking for existing open session"
+        $session = Get-PSSession | Where-Object { $_.ComputerName -in $ercsIpList -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
+                       
         if (!$session) {
+            Write-Verbose "No open connections found, createing new one"
             if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
-                Write-Host -ForegroundColor Cyan "Accessing keyvault to retrieve pep credentials, Enter Azure Credentials if prompted"
+                Write-Verbose "Retrieving credential from key vault"
                 $pepPassword = GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName -ErrorAction SilentlyContinue
                 if ($pepPassword) {
                     $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword.secretValue
-                    }
+                }
             }
             else {
-                Write-Host -ForegroundColor Cyan "Enter PEP credential"
+                Write-Host ("$($localizedText.LogonPep)" -f $Stamp)
+                Read-Host "Press Enter to continue"
                 $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
             }
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('HHmm')
             $usCulture = New-PSSessionOption -Culture en-US -UICulture en-US
-            foreach ($pepip in $vms) { 
-                Write-Host -ForegroundColor Cyan "Creating PEP session on $Stamp using IP $pepip"
-                $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction SilentlyContinue
+            foreach ($pepip in $ercsIpList) { 
+                Write-Host "Creating PEP session on $Stamp using IP $pepip"
+                $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction Continue
                 if ($session) {
                     break
                 }
             }
         }
         if (!$session) {
-            Write-Host -ForegroundColor Red "Failed to create PEP session"
+            Write-Error "Failed to create PEP session"
         }
     }
-
     else {
         $pepPassword = (GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName).SecretValue
         $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword
@@ -303,13 +388,11 @@ Function Get-PepSession {
     return $session
 }
 
-Export-ModuleMember -Function Get-PepSession
-
 Function Enter-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -322,41 +405,41 @@ Function Enter-PepSession {
         [String]
         $ErcsVM       
     )
-    $session = Get-PepSession @PSBoundParameters
-    Enter-PSSession -Session $session
+    $session = Connect-PepSession @PSBoundParameters
+    if ($session) {
+        Enter-PSSession -Session $session
+    }
 }
-
-Export-ModuleMember -Function Enter-PepSession
 
 Function Unlock-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
     )
 
-    $pep = Get-PepSession -Stamp $Stamp
-    $token = Invoke-Command -Session $pep { Get-supportSessionToken } 
-    Write-Host $token
-    Set-Clipboard -Value $token 
-    Write-Host -ForegroundColor Cyan "The support Session token has been copied to the clipboard"
-    Write-Host -ForegroundColor Cyan "Make sure the token returned from support is on the clipboard then press return to unlock the session"
-    Read-Host | Out-Null
-    $token = Get-Clipboard -Format Text | Out-String
-    Invoke-Command -Session $pep { Unlock-supportSession -ResponseToken $using:token }    
-    $pep
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        $token = Invoke-Command -Session $pep { Get-supportSessionToken } 
+        Write-Host $token
+        Set-Clipboard -Value $token 
+        Write-Host -ForegroundColor Cyan "The support Session token has been copied to the clipboard"
+        Write-Host -ForegroundColor Cyan "Make sure the token returned from support is on the clipboard then press return to unlock the session"
+        Read-Host | Out-Null
+        $token = Get-Clipboard -Format Text | Out-String
+        Invoke-Command -Session $pep { Unlock-supportSession -ResponseToken $using:token }    
+        $pep
+    }
 }
-
-Export-ModuleMember -Function Unlock-PepSession
 
 Function Close-PepSession {
     Param
     (
         [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -376,13 +459,11 @@ Function Close-PepSession {
     }
 }
 
-Export-ModuleMember -Function Close-PepSession
-
 Function Save-PepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -395,8 +476,6 @@ Function Save-PepSession {
     }
 }
 
-Export-ModuleMember -Function Save-PepSession
-
 Function Clear-StampCache {
     foreach ($stamp in $StampDef.Stamps) {
         $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($Stamp.Name)-*" }
@@ -406,13 +485,22 @@ Function Clear-StampCache {
     }
 }
 
-Export-ModuleMember -Function Clear-StampCache
-
 Function Get-Stamp {
-    $StampDef.Stamps
+    Param
+    (
+        [Parameter(Mandatory = $false, position = 0)]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
+        [string]
+        $Stamp     
+    )
+    if ($stamp) {
+        $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
+    }
+    else {
+        $StampDef.Stamps
+    }
 }
-
-Export-ModuleMember -Function Get-Stamp
 
 Function Add-Stamp {
     Param
@@ -429,7 +517,11 @@ Function Add-Stamp {
         [Parameter(Mandatory = $true, ParameterSetName = "regionfqdn")]
         [string]
         $ReqionFqdn,
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true, ParameterSetName = "stampInfo")]
+        [string]
+        $StampInfoJson,
+        [Parameter(Mandatory = $true, ParameterSetName = "regionfqdn")]
+        [Parameter(Mandatory = $true, ParameterSetName = "region")]
         [string[]]
         $ErcsVm,
         [string]
@@ -484,8 +576,27 @@ Function Add-Stamp {
     }
     if ($reqionfqdn) {
         $split = $reqionfqdn.Split('.')
-        $region = $split[0]
-        $fqdn = $split[1..-1] -join '.'
+        $Region = $split[0]
+        $Fqdn = $split[1..-1] -join '.'
+    }
+    if ($StampInfoJson) {
+        try {
+            $stampInfo = ConvertFrom-Json -InputObject (Get-Content -Path $StampInfoJson -raw) -ErrorAction  SilentlyContinue
+        }
+        catch {
+        }
+        if (![string]::IsNullOrEmpty($stampInfo)) {
+            $ercsVm = $stampinfo.EmergencyConsoleIPAddresses
+            $Region = $stampInfo.RegionName
+            $split = $stampInfo.ExternalDomainFQDN.Split('.')
+            $Region = $split[0]
+            $Fqdn = $split[1..-1] -join '.'
+            $CloudAdminUser.UserName = "{0}\CloudAdmin" -f $stampInfo.DomainNetBIOSName
+        }
+        else {
+            Write-Error "StampInfo Json file not valid or missing"
+            return 
+        }
     }
     $newStamp = [PSCustomObject]@{
         "Name"               = $Name
@@ -503,13 +614,11 @@ Function Add-Stamp {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
-Export-ModuleMember -Function Add-Stamp
-
 Function Set-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name,
@@ -558,13 +667,11 @@ Function Set-Stamp {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
-Export-ModuleMember -Function Set-Stamp
-
 Function Remove-Stamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name
@@ -576,8 +683,6 @@ Function Remove-Stamp {
     $script:StampDef.Stamps = $stamps
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
-
-Export-ModuleMember -Function Remove-Stamp
 
 Function Set-KeyVaultSubscription {
     Param
@@ -607,13 +712,11 @@ Function Set-KeyVaultSubscription {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
 }
 
-Export-ModuleMember -Function Set-KeyVaultSubscription
-
 Function Get-UpdateProgress {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -623,47 +726,46 @@ Function Get-UpdateProgress {
         $InProgress
     )
 
-    $pep = Get-PepSession -Stamp $Stamp
-
-    [xml]$status = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus }
-    $ScriptBlock = {
-        $duration = ""
-        [DateTime]$endTime = Get-Date
-        if (![String]::IsNullOrEmpty($_.StartTimeUtc)) {
-            if (![String]::IsNullOrEmpty($_.EndTimeUtc)) {
-                $endTime = $_.EndTimeUtc
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        [xml]$status = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus }
+        $ScriptBlock = {
+            $duration = ""
+            [DateTime]$endTime = Get-Date
+            if (![String]::IsNullOrEmpty($_.StartTimeUtc)) {
+                if (![String]::IsNullOrEmpty($_.EndTimeUtc)) {
+                    $endTime = $_.EndTimeUtc
+                }
+                $duration = ($endTime - [DateTime]$_.StartTimeUtc).ToString("hh\:mm\:ss")
             }
-            $duration = ($endTime - [DateTime]$_.StartTimeUtc).ToString("hh\:mm\:ss")
+            if ($_.Status -ne 'Succcess') {
+                Write-Output ("{0,-12} {1,-10}  {2,-10}   {3}" -f $_.FullStepIndex, $duration, $_.Status, $_.Description)
+            }
         }
-        if ($_.Status -ne 'Succcess') {
-            Write-Output ("{0,-12} {1,-10}  {2,-10}   {3}" -f $_.FullStepIndex, $duration, $_.Status, $_.Description)
-        }
-    }
 
-    if ($Brief) {
-        if ($status) {
-            $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
+        if ($Brief) {
+            if ($status) {
+                $status.SelectNodes("//Step") | ForEach-Object $ScriptBlock
+            }
         }
-    }
-    elseif ($InProgress) {
-        if ($status) {
-            $status.SelectNodes("//Step") | Where-Object { $_.Status -notlike "Success" } | ForEach-Object $ScriptBlock
-        }
-    } 
-    else {
-        if ($status) {
-            $status.SelectNodes("//Step") | Format-Table FullStepIndex, Index, Name, StartTimeUtc, Status, EndTimeUtc -AutoSize
+        elseif ($InProgress) {
+            if ($status) {
+                $status.SelectNodes("//Step") | Where-Object { $_.Status -notlike "Success" } | ForEach-Object $ScriptBlock
+            }
+        } 
+        else {
+            if ($status) {
+                $status.SelectNodes("//Step") | Format-Table FullStepIndex, Index, Name, StartTimeUtc, Status, EndTimeUtc -AutoSize
+            }
         }
     }
 }
-
-Export-ModuleMember -Function Get-UpdateProgress
 
 Function Get-UpdateVerboseLog {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -673,17 +775,17 @@ Function Get-UpdateVerboseLog {
 
     )
 
-    $pep = Get-PepSession -Stamp $Stamp
-    Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateVerboseLog -FullLog } | Out-File $OutputPath -Force
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateVerboseLog -FullLog } | Out-File $OutputPath -Force
+    }
 }
-
-Export-ModuleMember -Function Get-UpdateVerboseLog
 
 Function Get-UpdateActionStatusXml {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -693,87 +795,28 @@ Function Get-UpdateActionStatusXml {
 
     )
 
-    $pep = Get-PepSession -Stamp $Stamp
-    Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus } | Out-File $OutputPath -Force
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus } | Out-File $OutputPath -Force
+    }
 }
-
-Export-ModuleMember -Function Get-UpdateActionStatusXml
 
 Function Get-StampInformation {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
     )
 
-    $pep = Get-PepSession -Stamp $Stamp
-    $info = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackStampInformation }
-    $info
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        $info = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackStampInformation }
+        $info
+    }
 }
-
-Export-ModuleMember -Function Get-StampInformation
-
-Function Get-WinRmTrustedHost {
-    $currentTrustedHostsValue = (Get-Item WSMan:\localhost\Client\TrustedHosts).Value
-    Write-Host -ForegroundColor Cyan "Existing WinRM TrustedHosts values:"
-    Write-Host $currentTrustedHostsValue
-}
-
-Export-ModuleMember -Function Get-WinRmTrustedHost
-
-Function Set-WinRmTrustedHost {
-    Param
-    (
-        [Parameter(Mandatory = $false, position = 0)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
-        [Validatescript( { ValidateStampName -Stamp $_ })]
-        [string]
-        $Stamp,
-        [Parameter(Mandatory = $false)]
-        [switch]
-        $Force
-    )
-
-    [Security.Principal.WindowsPrincipal]$id = [Security.Principal.WindowsIdentity]::GetCurrent()
-    if (-not $id.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-        Write-Host -ForegroundColor Cyan 'using Set-WinRmTrustedHost requires running PowerShell in Admin mode'
-        return
-    }
-
-    if ($Stamp) {
-        $stampInfo = $StampDef.Stamps | Where-Object { $_.Name -eq $Stamp }
-        Write-Host -ForegroundColor Cyan "Getting ERCS VM IP addresses for stamp $Stamp"
-        $trustedHostIPs = $stampInfo.ErcsVMs
-    }
-    else {
-        Write-Host -ForegroundColor Cyan "Getting ERCS VM IP addresses for all lab stamps"
-        $trustedHostIPs = $StampDef.Stamps.ErcsVMs
-    }
-
-    $currentTrustedHostsValue = (Get-Item WSMan:\localhost\Client\TrustedHosts).Value
-
-    if (!$Force -and -not [string]::IsNullOrEmpty($currentTrustedHostsValue)) {
-        Write-Host -ForegroundColor Cyan "Existing WinRM TrustedHosts value:"
-        Write-Host $currentTrustedHostsValue
-        $existingHosts = $currentTrustedHostsValue.split(',')
-        if ('*' -in $existingHosts) {
-            Write-Host -ForegroundColor Cyan "Leaving existing wildcard"
-            return 
-        }
-        $trustedHostIPs += $existingHosts
-    }
-    $trustedHosts = ($trustedHostIPs | Sort-Object -Unique) -join ","
-
-    Write-Host -ForegroundColor Cyan "Setting WinRM TrustedHosts to:"
-    Write-Host $trustedHosts
-
-    Set-Item WSMan:\localhost\Client\TrustedHosts -Value $trustedHosts -Confirm:$false -Force
-}
-
-Export-ModuleMember -Function Set-WinRmTrustedHost
 
 function Test-Unlock {
     Param
@@ -790,7 +833,7 @@ function Unlock-RpSubscription {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
-        [ArgumentCompleter({(Get-Stamp).Name | Sort-Object})]
+        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -802,20 +845,19 @@ function Unlock-RpSubscription {
     )
     Connect-AzureStack -Stamp $Stamp
     $PrincipalId = Get-Principalid
-    $pep = Get-PepSession -Stamp $Stamp
-    if (Test-Unlock -PepSession $pep) {
-        Invoke-Command $pep { Import-Module Azs.DeploymentProvider.Security -ErrorAction Stop -Verbose }
-        Invoke-Command $pep { Unlock-AzsProductSubscription -ProductId $Using:ProductId -PrincipalId $Using:PrincipalId }
-    }
-    else {
-        Write-Host -ForegroundColor Cyan "PEP must be unlocked to perform this function"
+    $pep = Connect-PepSession -Stamp $Stamp
+    if ($pep) {
+        if (Test-Unlock -PepSession $pep) {
+            Invoke-Command $pep { Import-Module Azs.DeploymentProvider.Security -ErrorAction Stop -Verbose }
+            Invoke-Command $pep { Unlock-AzsProductSubscription -ProductId $Using:ProductId -PrincipalId $Using:PrincipalId }
+        }
+        else {
+            Write-Host -ForegroundColor Cyan "PEP must be unlocked to perform this function"
+        }
     }
 }
 
-Export-ModuleMember -Function Unlock-RpSubscription
-
-function Get-Principalid
-{
+function Get-Principalid {
     $profile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
     $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($profile)
     $token = $profileClient.AcquireAccessToken($profile.DefaultContext.Tenant.Id)
