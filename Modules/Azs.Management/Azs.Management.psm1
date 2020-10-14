@@ -353,7 +353,7 @@ Function Connect-PepSession {
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $ercsIpList -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
                        
         if (!$session) {
-            $pepCred=$null
+            $pepCred = $null
             Write-Verbose "No open connections found, createing new one"
             if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
                 Write-Verbose "Retrieving credential from key vault"
@@ -362,13 +362,15 @@ Function Connect-PepSession {
                     $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword.secretValue
                 }
             }
-            if ($PepCredential) {
-                $pepCred = $PepCredential
-            }
             else {
-                Write-Host ("$($localizedText.LogonPep)" -f $Stamp)
-                Read-Host "Press Enter to continue" | Out-Null
-                $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
+                if ($PepCredential) {
+                    $pepCred = $PepCredential
+                }
+                else {
+                    Write-Host ("$($localizedText.LogonPep)" -f $Stamp)
+                    Read-Host "Press Enter to continue" | Out-Null
+                    $pepCred = Get-Credential -Message "Enter PEP credentials" -UserName $pepUser.userName
+                }
             }
             $sessionName = "{0}{1}" -f $Stamp, (Get-Date).ToString('HHmm')
             $usCulture = New-PSSessionOption -Culture en-US -UICulture en-US
