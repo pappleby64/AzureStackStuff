@@ -353,16 +353,17 @@ Function Connect-PepSession {
         $session = Get-PSSession | Where-Object { $_.ComputerName -in $ercsIpList -and $_.State -eq 'Opened' } | Sort-Object Id -Descending | Select-Object -First 1
                        
         if (!$session) {
+            $pepCred=$null
             Write-Verbose "No open connections found, createing new one"
-            if ($PepCredential) {
-                $pepCred = $PepCredential
-            }
-            elseif (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
+            if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
                 Write-Verbose "Retrieving credential from key vault"
                 $pepPassword = GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName -ErrorAction SilentlyContinue
                 if ($pepPassword) {
                     $pepCred = New-Object System.Management.Automation.PSCredential $pepUser.UserName, $pepPassword.secretValue
                 }
+            }
+            if ($PepCredential) {
+                $pepCred = $PepCredential
             }
             else {
                 Write-Host ("$($localizedText.LogonPep)" -f $Stamp)
@@ -447,7 +448,7 @@ Function Close-PepSession {
     [CmdletBinding(DefaultParameterSetName = 'Single')]
     Param
     (
-        [Parameter(Mandatory = $true, ParameterSetName = 'Single')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'Single', position = 0)]
         [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
