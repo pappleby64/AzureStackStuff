@@ -602,7 +602,7 @@ Function Add-Stamp {
             $Region = $stampInfo.RegionName
             $split = $stampInfo.ExternalDomainFQDN.Split('.')
             $Region = $split[0]
-            $Fqdn = $split[1..-1] -join '.'
+            $Fqdn = $split[1..$split.count] -join '.'
             $CloudAdminUser.UserName = "{0}\CloudAdmin" -f $stampInfo.DomainNetBIOSName
         }
         else {
