@@ -30,7 +30,7 @@ Function ValidateStampName {
         $true
     }
     else {
-        throw "Unkown Stamp, Use Get-Stamp to list available stamps"
+        throw "Unkown Stamp, Use Get-AzsStam to list available stamps"
     }
 }
 
@@ -179,7 +179,7 @@ Function Connect-AzsArmEndpoint {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -228,7 +228,7 @@ Function Connect-AzsPortal {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -272,7 +272,7 @@ Function Connect-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -401,7 +401,7 @@ Function Enter-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -426,7 +426,7 @@ Function Unlock-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -451,7 +451,7 @@ Function Close-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true, ParameterSetName = 'Single', position = 0)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -475,7 +475,7 @@ Function Save-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -501,7 +501,7 @@ Function Get-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp     
@@ -630,7 +630,7 @@ Function Set-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name,
@@ -683,7 +683,7 @@ Function Remove-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Name
@@ -728,7 +728,7 @@ Function Get-AzsUpdateProgress {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -777,7 +777,7 @@ Function Get-AzsUpdateVerboseLog {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -797,7 +797,7 @@ Function Get-AzsUpdateActionStatusXml {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
@@ -816,7 +816,7 @@ Function Get-AzsStampInformation {
     Param
     (
         [Parameter(Mandatory = $true)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp
@@ -844,7 +844,7 @@ function Unlock-AzsRpSubscription {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
-        [ArgumentCompleter( { (Get-Stamp).Name | Sort-Object })]
+        [ArgumentCompleter( { (Get-AzsStam).Name | Sort-Object })]
         [Validatescript( { ValidateStampName -Stamp $_ })]
         [string]
         $Stamp,
