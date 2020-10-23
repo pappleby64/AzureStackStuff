@@ -1,6 +1,6 @@
 ﻿#Requires -Modules @{ ModuleName="Az.Accounts"; ModuleVersion="2.0" }
 
-Import-LocalizedData LocalizedText -Filename Azs.Management.Strings.psd1 -ErrorAction SilentlyContinue
+Import-LocalizedData LocalizedText -Filename Azs.Operator.Strings.psd1 -ErrorAction SilentlyContinue
 
 $settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
 $settingsFile = "$settingsFolder\StampDef.json"
@@ -163,7 +163,7 @@ Function GetKeyVaultContext {
     $ctx
 }
 
-Function Connect-AzureStack {
+Function Connect-AzsArmEndpoint {
     <#
     .SYNOPSIS
         Connects to the  Azure Stack HUb ARM endpoint
@@ -211,7 +211,7 @@ Function Connect-AzureStack {
     }
 }
 
-Function Connect-AzureStackPortal {
+Function Connect-AzsPortal {
     <#
     .SYNOPSIS
         Connects to the  Azure Stack HUb Portal
@@ -257,14 +257,14 @@ Function Connect-AzureStackPortal {
     Start-Process -FilePath  $url
 }
 
-Function Connect-PepSession {
+Function Connect-AzsPepSession {
     <#
     .SYNOPSIS
         Connects to the  Azure Stack Privileged Endpoint
     .DESCRIPTION
-        Connects to the Azure Stack Hub Privileged Endpoint. Connect-PepSession will use an existing session if available.
+        Connects to the Azure Stack Hub Privileged Endpoint. Connect-AzsPepSession will use an existing session if available.
     .EXAMPLE
-        PS C:\> Connect-PepSession -Stamp MyStamp 
+        PS C:\> Connect-AzsPepSession -Stamp MyStamp 
     .NOTES
         Will use a credential from Key Valult if available and defined in the stamp settings.
 #>    
@@ -397,7 +397,7 @@ Function Connect-PepSession {
     return $session
 }
 
-Function Enter-PepSession {
+Function Enter-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true, position = 0)]
@@ -416,13 +416,13 @@ Function Enter-PepSession {
         [System.Management.Automation.PSCredential]
         $PepCredential     
     )
-    $session = Connect-PepSession @PSBoundParameters
+    $session = Connect-AzsPepSession @PSBoundParameters
     if ($session) {
         Enter-PSSession -Session $session
     }
 }
 
-Function Unlock-PepSession {
+Function Unlock-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -432,7 +432,7 @@ Function Unlock-PepSession {
         $Stamp
     )
 
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         $token = Invoke-Command -Session $pep { Get-supportSessionToken } 
         Write-Host $token
@@ -446,7 +446,7 @@ Function Unlock-PepSession {
     }
 }
 
-Function Close-PepSession {
+Function Close-AzsPepSession {
     [CmdletBinding(DefaultParameterSetName = 'Single')]
     Param
     (
@@ -471,7 +471,7 @@ Function Close-PepSession {
     }
 }
 
-Function Save-PepSession {
+Function Save-AzsPepSession {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -488,7 +488,7 @@ Function Save-PepSession {
     }
 }
 
-Function Clear-StampCache {
+Function Clear-AzsStampCache {
     foreach ($stamp in $StampDef.Stamps) {
         $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($Stamp.Name)-*" }
         $ctx | Remove-AzContext -Force
@@ -497,7 +497,7 @@ Function Clear-StampCache {
     }
 }
 
-Function Get-Stamp {
+Function Get-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
@@ -514,7 +514,7 @@ Function Get-Stamp {
     }
 }
 
-Function Add-Stamp {
+Function Add-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -626,7 +626,7 @@ Function Add-Stamp {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
-Function Set-Stamp {
+Function Set-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -679,7 +679,7 @@ Function Set-Stamp {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
-Function Remove-Stamp {
+Function Remove-AzsStamp {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -696,7 +696,7 @@ Function Remove-Stamp {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8
 }
 
-Function Set-KeyVaultSubscription {
+Function Set-AzsKeyVaultSubscription {
     Param
     (
         [string]
@@ -724,7 +724,7 @@ Function Set-KeyVaultSubscription {
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
 }
 
-Function Get-UpdateProgress {
+Function Get-AzsUpdateProgress {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -738,7 +738,7 @@ Function Get-UpdateProgress {
         $InProgress
     )
 
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         [xml]$status = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus }
         $ScriptBlock = {
@@ -773,7 +773,7 @@ Function Get-UpdateProgress {
     }
 }
 
-Function Get-UpdateVerboseLog {
+Function Get-AzsUpdateVerboseLog {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -787,13 +787,13 @@ Function Get-UpdateVerboseLog {
 
     )
 
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateVerboseLog -FullLog } | Out-File $OutputPath -Force
     }
 }
 
-Function Get-UpdateActionStatusXml {
+Function Get-AzsUpdateActionStatusXml {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -806,13 +806,13 @@ Function Get-UpdateActionStatusXml {
         $OutputPath
     )
 
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackUpdateStatus } | Out-File $OutputPath -Force
     }
 }
 
-Function Get-StampInformation {
+Function Get-AzsStampInformation {
     Param
     (
         [Parameter(Mandatory = $true)]
@@ -822,7 +822,7 @@ Function Get-StampInformation {
         $Stamp
     )
 
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         $info = Invoke-Command -Session $pep -ScriptBlock { Get-AzureStackStampInformation }
         $info
@@ -840,7 +840,7 @@ function Test-Unlock {
     return !($null -eq $test)
 }
 
-function Unlock-RpSubscription {
+function Unlock-AzsRpSubscription {
     Param
     (
         [Parameter(Mandatory = $false, position = 0)]
@@ -856,7 +856,7 @@ function Unlock-RpSubscription {
     )
     Connect-AzureStack -Stamp $Stamp
     $PrincipalId = Get-Principalid
-    $pep = Connect-PepSession -Stamp $Stamp
+    $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
         if (Test-Unlock -PepSession $pep) {
             Invoke-Command $pep { Import-Module Azs.DeploymentProvider.Security -ErrorAction Stop -Verbose }
