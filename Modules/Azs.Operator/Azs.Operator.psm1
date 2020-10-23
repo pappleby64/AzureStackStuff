@@ -440,7 +440,7 @@ Function Unlock-AzsPepSession {
         Write-Host -ForegroundColor Cyan "The support Session token has been copied to the clipboard"
         Write-Host -ForegroundColor Cyan "Make sure the token returned from support is on the clipboard then press return to unlock the session"
         Read-Host | Out-Null
-        $token = Get-Clipboard -Format Text | Out-String
+        $token = Get-Clipboard | Out-String
         Invoke-Command -Session $pep { Unlock-supportSession -ResponseToken $using:token }    
         $pep
     }
