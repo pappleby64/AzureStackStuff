@@ -213,7 +213,6 @@ function New-SelfSignedJsonWebToken {
         $hashAlg.Dispose()
         $rsa.Dispose()
         }
-    }
 
     return ($tokenParts -join '.')
 }
