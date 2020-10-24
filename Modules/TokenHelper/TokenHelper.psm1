@@ -26,17 +26,17 @@
     $loginEndpoint = $armMetedata.authentication.loginEndpoint
     if ($loginEndpoint -like '*/adfs') {
         $adMetadataUri = "{0}/.well-known/openid-configuration" -f $loginEndpoint
-        }
+    }
     else {
-        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint,$TenantId
-        }
+        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint, $TenantId
+    }
     $adMetadata = Invoke-RestMethod -Uri $adMetadataUri
     $tokenEndpoint = $adMetadata.token_endpoint
     $params = $PSBoundParameters
     $params.Remove('ArmEndpoint') | Out-Null
     $params.Remove('TenantId') | Out-Null
-    $params.Add('Resource',$armMetedata.authentication.audiences[0])
-    $params.Add('TokenEndpoint',$tokenEndpoint)
+    $params.Add('Resource', $armMetedata.authentication.audiences[0])
+    $params.Add('TokenEndpoint', $tokenEndpoint)
     $token = Get-ResourceToken @params
     $token
 }
@@ -71,17 +71,17 @@ function Get-GraphToken {
     $loginEndpoint = $armMetedata.authentication.loginEndpoint
     if ($loginEndpoint -like '*/adfs') {
         $adMetadataUri = "{0}/.well-known/openid-configuration" -f $loginEndpoint
-        }
+    }
     else {
-        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint,$TenantId
-        }
+        $adMetadataUri = "{0}/{1}/.well-known/openid-configuration" -f $loginEndpoint, $TenantId
+    }
     $adMetadata = Invoke-RestMethod -Uri $adMetadataUri
     $tokenEndpoint = $adMetadata.token_endpoint
     $params = $PSBoundParameters
     $params.Remove('ArmEndpoint') | Out-Null
     $params.Remove('TenantId') | Out-Null
-    $params.Add('Resource',$armMetedata.graphEndpoint)
-    $params.Add('TokenEndpoint',$tokenEndpoint)
+    $params.Add('Resource', $armMetedata.graphEndpoint)
+    $params.Add('TokenEndpoint', $tokenEndpoint)
     $token = Get-ResourceToken @params
     $token
 }
@@ -170,6 +170,7 @@ function New-SelfSignedJsonWebToken {
 
     $tokenHeaders = [ordered]@{
         alg = 'RS256'
+        typ = 'JWT'
         x5t = ConvertTo-Base64UrlEncode $ClientCertificate.GetCertHash()
     }
 
@@ -184,46 +185,26 @@ function New-SelfSignedJsonWebToken {
         sub = $ClientId
     }
 
-    Write-Verbose "Preparing client assertion with token header: '$(ConvertTo-Json $tokenHeaders -Compress)' and claims: $(ConvertTo-Json $tokenClaims)"
 
     # Note - we escape the forward slashes ('/') as the ConvertTo-Json cmdlet does not. This may not actually be necessary.
     $tokenParts = @()
     $tokenParts += ConvertTo-Base64UrlEncode ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $tokenHeaders -Depth 10 -Compress).Replace('/', '\/')))
     $tokenParts += ConvertTo-Base64UrlEncode ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $tokenClaims -Depth 10 -Compress).Replace('/', '\/')))
-
-    $sha256Hash = ''
-    $sha256 = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        $sha256Hash = $sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($tokenParts -join '.'))
-    }
-    finally {
-        if ($sha256) { $sha256.Dispose(); $sha256 = $null }
-    }
-
-    # Note - the default instance of the RSACryptoServiceProvider instantiated on the client certificate may only support SHA1.
-    # E.g. Even when "$($ClientCertificate.SignatureAlgorithm.FriendlyName)" evaluates to "sha256RSA", the value of
-    # "$($ClientCertificate.PrivateKey.SignatureAlgorithm)" may evaulate to "http://www.w3.org/2000/09/xmldsig#rsa-sha1".
-    # Furthermore, the private key is likely not marked as exportable, so we cannot "simply" instantiate a new RSACryptoServiceProvider instance.
-    # We must first create new CSP parameters with a "better" cryptographic service provider that supports SHA256, and use those parameters
-    # to instantiate a "better" RSACryptoServiceProvider which also supports SAH256. Failure to do this will result in the following error:
-    # "Exception calling "CreateSignature" with "1" argument(s): "Invalid algorithm specified."
-    # It may be possible to bypass this issue of the certificate is generated with the "correct" cryptographic service provider, but if the certificate
-    # was created by a CA or if the provider type was not the "correct" type, then this workaround must be used.
-    # Note - this assumes certificate is installed in the local machine store.
+    
     $csp = New-Object System.Security.Cryptography.CspParameters(
         ($providerType = 24),
         ($providerName = 'Microsoft Enhanced RSA and AES Cryptographic Provider'),
         $ClientCertificate.PrivateKey.CspKeyContainerInfo.KeyContainerName)
     $csp.Flags = [System.Security.Cryptography.CspProviderFlags]::UseMachineKeyStore
 
-    $signatureBytes = $null
     $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider($csp)
-    try {
-        $signatureBytes = $rsa.SignHash($sha256Hash, [System.Security.Cryptography.HashAlgorithmName]::SHA256, [System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
-    }
-    finally {
-        if ($rsa) { $rsa.Dispose(); $rsa = $null }
-    }
+    $rsa.ImportParameters($ClientCertificate.PrivateKey.ExportParameters($true))
+    $hashAlg = [System.Security.Cryptography.SHA256]::Create()
+
+    $datatosign = [System.Text.Encoding]::UTF8.GetBytes($tokenParts -join '.')
+    $signatureBytes = $rsa.SignData($datatosign, $hashAlg)
+    $rsa.Dispose()
+    $hashAlg.Dispose()
 
     $tokenParts += ConvertTo-Base64UrlEncode $signatureBytes
 
