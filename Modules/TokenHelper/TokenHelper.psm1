@@ -190,29 +190,12 @@ function New-SelfSignedJsonWebToken {
     $tokenParts = @()
     $tokenParts += ConvertTo-Base64UrlEncode ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $tokenHeaders -Depth 10 -Compress).Replace('/', '\/')))
     $tokenParts += ConvertTo-Base64UrlEncode ([System.Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $tokenClaims -Depth 10 -Compress).Replace('/', '\/')))
-    
-    try {
-        $csp = New-Object System.Security.Cryptography.CspParameters(
-            ($providerType = 24),
-            ($providerName = 'Microsoft Enhanced RSA and AES Cryptographic Provider'),
-            $ClientCertificate.PrivateKey.CspKeyContainerInfo.KeyContainerName)
-        $csp.Flags = [System.Security.Cryptography.CspProviderFlags]::UseMachineKeyStore
+    $data = [System.Text.Encoding]::UTF8.GetBytes( ($tokenParts -join '.'))
+    $rsa = [System.Security.Cryptography.X509Certificates.RSACertificateExtensions]::GetRSAPrivateKey($ClientCertificate)
+    $signatureBytes = $rsa.SignData($data,[System.Security.Cryptography.HashAlgorithmName]::SHA256,[System.Security.Cryptography.RSASignaturePadding]::Pkcs1)
 
-        $rsa = New-Object System.Security.Cryptography.RSACryptoServiceProvider($csp)
-        $rsa.ImportParameters($ClientCertificate.PrivateKey.ExportParameters($true))
-        $hashAlg = [System.Security.Cryptography.SHA256]::Create()
+    $tokenParts += ConvertTo-Base64UrlEncode $signatureBytes
 
-        $datatosign = [System.Text.Encoding]::UTF8.GetBytes($tokenParts -join '.')
-        $signatureBytes = $rsa.SignData($datatosign, $hashAlg)
-        $rsa.Dispose()
-        $hashAlg.Dispose()
-
-        $tokenParts += ConvertTo-Base64UrlEncode $signatureBytes
-    }
-    finally {
-        $hashAlg.Dispose()
-        $rsa.Dispose()
-        }
 
     return ($tokenParts -join '.')
 }
