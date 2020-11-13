@@ -2,12 +2,15 @@
 
 Import-LocalizedData LocalizedText -Filename Azs.Operator.Strings.psd1 -ErrorAction SilentlyContinue
 
-$settingsFolder = "$env:LOCALAPPDATA\AzsStampHelper"
-$settingsFile = "$settingsFolder\StampDef.json"
+$settingsFolderv1 = "$env:LOCALAPPDATA\AzsStampHelper"
+$settingsFilev1 = "$settingsFolderv1\StampDef.json"
+$settingsFolder = "$HOME\.AzsOperator"
+$settingsFile = "$settingsFolder\StampDefinitions.json"
 
 
 if (!(Test-Path $settingsFolder)) {
     New-Item -ItemType Directory $settingsFolder | Out-Null
+    Copy-Item $settingsFilev1 -Destination $settingsFile -ErrorAction SilentlyContinue
 }
 
 if (Test-Path $settingsFile) {
@@ -56,13 +59,12 @@ Function GetEnvironment {
         $kvdns = 'adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
         $kvresourceId = 'https://adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
     }
-
-    $azEnv = Get-AzEnvironment -Name $envName 
-    if (!$azEnv) {
+ 
+        Remove-AzEnvironment -Name $envName -ErrorAction SilentlyContinue | Out-Null
         Write-Verbose "Adding new AzEnvironment $envName for endpoint $url"
         $azEnv = Add-AzEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
         Set-AzEnvironment -Name $envName -AzureKeyVaultDnsSuffix $kvdns -AzureKeyVaultServiceEndpointResourceId $kvresourceId | out-null
-    }
+
 
     if (!$azEnv) {
         throw "Unable to create Azure Environment"
@@ -113,8 +115,8 @@ Function ConnectAzureStackUser {
 
     $accountParams = @{ }
     $accountParams.Add('Environment', $Environment)
-
-    if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName)) {
+#Add-AzAccount in PowerShell Core does support passing a credential for a user logon
+    if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName) -and $PSEdition -eq 'Desktop' ) {
         $cred = GetUserCredential -user $User
         if ($cred) { $accountParams.Add('Credential', $cred) }
     }
@@ -133,7 +135,7 @@ Function ConnectAzureStackUser {
         Write-Host ("$($localizedText.LogonToEnv)" -f $Environment.Name)
         Read-Host "Press Enter to continue" | Out-Null
     }
-    $result = Connect-AzAccount @accountParams -SkipContextPopulation -ContextName $Environment
+    $result = Connect-AzAccount @accountParams -SkipContextPopulation -ContextName $Environment.Name
     $result.Context 
 }
 
@@ -150,6 +152,25 @@ Function GetKeyVaultContext {
         Read-Host "Press Enter to continue" | Out-Null
         $cloud = $StampDef.KeyVaultCloud.Cloud
         if ([string]::IsNullOrEmpty($cloud)) { $cloud = 'AzureCloud' }
+        if ($cloud -eq 'Custom') {
+            $fullUri = $StampDef.KeyVaultCloud.CustomArmEndpoint.TrimEnd('/') + "/metadata/endpoints?api-version=2015-01-01"
+            $response = Invoke-RestMethod -Uri $fullUri -ErrorAction Stop -UseBasicParsing -TimeoutSec 30 -Verbose
+            Write-Verbose -Message "Endpoints: $(ConvertTo-Json $response)" -Verbose
+            $endpoints = @{
+                ActiveDirectoryAuthority                 = $response.authentication.loginEndpoint.TrimEnd('/') + "/"
+                ActiveDirectoryServiceEndpointResourceId = $response.authentication.audiences[0]
+                ResourceManagerUrl                       = $StampDef.KeyVaultCloud.CustomArmEndpoint
+                GalleryUrl                               = $response.galleryEndpoint
+                GraphUrl                                 = $response.graphEndpoint
+                GraphEndpointResourceId                  = $response.graphEndpoint
+                EnableAdfsAuthentication                 = $false
+                AzureKeyVaultServiceEndpointResourceId   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management','vault')
+                AzureKeyVaultDnsSuffix                   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management','vault').split('//')[2]
+            }
+            Remove-AzEnvironment -Name 'KeyVaultCloud' -ErrorAction Ignore | Out-Null
+            Add-AzEnvironment -Name 'KeyVaultCloud' @endpoints | Out-Null
+            $cloud = 'KeyVaultCloud'
+        }
         $tenant = $StampDef.KeyVaultCloud.TenantId
         $sub = $StampDef.KeyVaultCloud.Subscription
 
@@ -376,9 +397,17 @@ Function Connect-AzsPepSession {
             $usCulture = New-PSSessionOption -Culture en-US -UICulture en-US
             foreach ($pepip in $ercsIpList) { 
                 Write-Host "Creating PEP session on $Stamp using IP $pepip"
-                $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction Continue
-                if ($session) {
-                    break
+                try {
+                    $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction Stop
+                    if ($session) {
+                        break
+                        }
+                    }
+                catch [System.Management.Automation.Remoting.PSRemotingTransportException]{
+                    if ($_.Exception.TransportMessage -like "*Access is denied*") {
+                        Write-Error "Access Denied - Skipping other IP addresses"
+                        break
+                        }
                 }
             }
         }
@@ -699,8 +728,17 @@ Function Remove-AzsStamp {
 Function Set-AzsKeyVaultSubscription {
     Param
     (
-        [string]
+        [Parameter(Mandatory = $false, ParameterSetName = "cloud")]
+        [ValidateSet(
+            'AzureCloud',
+            'AzureChinaCloud',
+            'AzureGermanCloud',
+            'AzureUSGovernment'
+        )]
         $cloud = 'AzureCloud',
+        [Parameter(Mandatory = $true, ParameterSetName = "custom")]
+        [string]
+        $CustomArmEndpoint,
         [string]
         $Tenantid,
         [string]
@@ -713,13 +751,20 @@ Function Set-AzsKeyVaultSubscription {
             "Cloud"        = "AzureCloud"
             "TenantId"     = ""
             "Subscription" = ""
+            "CustomArmEndpoint" = ""
         }
         Add-Member -InputObject $StampDef -MemberType NoteProperty -Name 'KeyVaultCloud' -Value $KeyVaultCloud
     }
-
-    if ($PSBoundParameters.Keys -contains "cloud") { $StampDef.KeyVaultCloud.Cloud = $cloud }
-    if ($PSBoundParameters.Keys -contains "Tenantid") { $StampDef.KeyVaultCloud.TenantId = $Tenantid }
-    if ($PSBoundParameters.Keys -contains "Subscription") { $StampDef.KeyVaultCloud.Subscription = $Subscription }
+    if (-not [string]::IsNullOrEmpty($CustomArmEndpoint)) 
+    {
+        $StampDef.KeyVaultCloud.Cloud = 'custom'
+    }
+    else {
+        $StampDef.KeyVaultCloud.Cloud = $cloud 
+    }
+    $StampDef.KeyVaultCloud.TenantId = $Tenantid 
+    $StampDef.KeyVaultCloud.Subscription = $Subscription 
+    $StampDef.KeyVaultCloud.CustomArmEndpoint = $CustomArmEndpoint 
 
     ConvertTo-Json -InputObject $StampDef -Depth 99 | Out-File $settingsFile -Encoding utf8    
 }
