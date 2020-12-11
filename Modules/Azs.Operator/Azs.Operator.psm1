@@ -899,7 +899,7 @@ function Unlock-AzsRpSubscription {
         [string]
         $PrincipalId
     )
-    Connect-AzureStack -Stamp $Stamp
+    Connect-AzsArmEndpoint -Stamp $Stamp
     $PrincipalId = Get-Principalid
     $pep = Connect-AzsPepSession -Stamp $Stamp
     if ($pep) {
