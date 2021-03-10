@@ -60,10 +60,10 @@ Function GetEnvironment {
         $kvresourceId = 'https://adminvault.{0}.{1}' -f $stamp.Region, $stamp.ExternalFqdnDomain
     }
  
-        Remove-AzEnvironment -Name $envName -ErrorAction SilentlyContinue | Out-Null
-        Write-Verbose "Adding new AzEnvironment $envName for endpoint $url"
-        $azEnv = Add-AzEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
-        Set-AzEnvironment -Name $envName -AzureKeyVaultDnsSuffix $kvdns -AzureKeyVaultServiceEndpointResourceId $kvresourceId | out-null
+    Remove-AzEnvironment -Name $envName -ErrorAction SilentlyContinue | Out-Null
+    Write-Verbose "Adding new AzEnvironment $envName for endpoint $url"
+    $azEnv = Add-AzEnvironment -Name $envName -ArmEndpoint $url -ErrorAction SilentlyContinue
+    Set-AzEnvironment -Name $envName -AzureKeyVaultDnsSuffix $kvdns -AzureKeyVaultServiceEndpointResourceId $kvresourceId | out-null
 
 
     if (!$azEnv) {
@@ -115,7 +115,7 @@ Function ConnectAzureStackUser {
 
     $accountParams = @{ }
     $accountParams.Add('Environment', $Environment)
-#Add-AzAccount in PowerShell Core does support passing a credential for a user logon
+    #Add-AzAccount in PowerShell Core does support passing a credential for a user logon
     if (![String]::IsNullOrEmpty($User.VaultName) -and ![String]::IsNullOrEmpty($User.SecretName) -and $PSEdition -eq 'Desktop' ) {
         $cred = GetUserCredential -user $User
         if ($cred) { $accountParams.Add('Credential', $cred) }
@@ -164,8 +164,8 @@ Function GetKeyVaultContext {
                 GraphUrl                                 = $response.graphEndpoint
                 GraphEndpointResourceId                  = $response.graphEndpoint
                 EnableAdfsAuthentication                 = $false
-                AzureKeyVaultServiceEndpointResourceId   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management','vault')
-                AzureKeyVaultDnsSuffix                   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management','vault').split('//')[2]
+                AzureKeyVaultServiceEndpointResourceId   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management', 'vault')
+                AzureKeyVaultDnsSuffix                   = ($StampDef.KeyVaultCloud.CustomArmEndpoint).Replace('management', 'vault').split('//')[2]
             }
             Remove-AzEnvironment -Name 'KeyVaultCloud' -ErrorAction Ignore | Out-Null
             Add-AzEnvironment -Name 'KeyVaultCloud' @endpoints | Out-Null
@@ -182,6 +182,13 @@ Function GetKeyVaultContext {
         $ctx = $result.Context
     }
     $ctx
+}
+
+Function Connect-AzsKeyVaultContext {
+    $ctx = GetKeyVaultContext
+    if ($ctx) {
+        $ctx | Select-AzContext
+    }
 }
 
 Function Connect-AzsArmEndpoint {
@@ -376,7 +383,7 @@ Function Connect-AzsPepSession {
         if (!$session) {
             $pepCred = $null
             Write-Verbose "No open connections found, createing new one"
-            if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName)) {
+            if (![String]::IsNullOrEmpty($pepUser.VaultName) -and ![String]::IsNullOrEmpty($pepUser.SecretName) -and !$PepCredential) {
                 Write-Verbose "Retrieving credential from key vault"
                 $pepPassword = GetKeyVaultSecret -valultName $pepUser.VaultName -secretName $pepUser.SecretName -ErrorAction SilentlyContinue
                 if ($pepPassword) {
@@ -401,18 +408,21 @@ Function Connect-AzsPepSession {
                     $session = New-PSSession -ComputerName $pepip -ConfigurationName PrivilegedEndPoint -Credential $pepCred -Name $sessionName -SessionOption $usCulture -ErrorAction Stop
                     if ($session) {
                         break
-                        }
                     }
-                catch [System.Management.Automation.Remoting.PSRemotingTransportException]{
+                }
+                catch {
                     if ($_.Exception.TransportMessage -like "*Access is denied*") {
                         Write-Error "Access Denied - Skipping other IP addresses"
                         break
-                        }
+                    }
+                    else {
+                        Write-Error $_.Exception.Message
+                    }
                 }
             }
         }
         if (!$session) {
-            Write-Error "Failed to create PEP session"
+            Write-Output "Failed to create PEP session"
         }
     }
     else {
@@ -518,11 +528,30 @@ Function Save-AzsPepSession {
 }
 
 Function Clear-AzsStampCache {
-    foreach ($stamp in $StampDef.Stamps) {
-        $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($Stamp.Name)-*" }
+    Param
+    (
+        [Parameter(Mandatory = $true, ParameterSetName = 'Single', position = 0)]
+        [ArgumentCompleter( { (Get-AzsStamp).Name | Sort-Object })]
+        [Validatescript( { ValidateStampName -Stamp $_ })]
+        [string]
+        $Stamp,
+        [Parameter(Mandatory = $false, ParameterSetName = 'All')]
+        [Switch]
+        $All
+    )
+    if ($PSCmdlet.ParameterSetName -eq 'Single') {
+        $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($stampInfo)-*" }
         $ctx | Remove-AzContext -Force
-        $env = Get-AzEnvironment | Where-Object { $_.Name -like "$($Stamp.Name)-*" }
+        $env = Get-AzEnvironment | Where-Object { $_.Name -like "$($Stamp)-*" }
         $env | Remove-AzEnvironment | Out-Null
+    }
+    else {
+        foreach ($stamp in $StampDef.Stamps) {
+            $ctx = Get-AzContext -ListAvailable -ErrorAction SilentlyContinue | Where-Object { $_.Environment.Name -like "$($Stamp)-*" }
+            $ctx | Remove-AzContext -Force
+            $env = Get-AzEnvironment | Where-Object { $_.Name -like "$($Stamp.Name)-*" }
+            $env | Remove-AzEnvironment | Out-Null
+        }
     }
 }
 
@@ -745,18 +774,28 @@ Function Set-AzsKeyVaultSubscription {
         $Subscription
     )
 
-    $KeyVaultCloud = $StampDef.KeyVaultCloud
-    if ($null -eq $KeyVaultCloud) {
+    #if key vault cloud not previously defined add new default
+    if ($null -eq $StampDef.KeyVaultCloud) {
         $KeyVaultCloud = [PSCustomObject]@{
-            "Cloud"        = "AzureCloud"
-            "TenantId"     = ""
-            "Subscription" = ""
+            "Cloud"             = "AzureCloud"
+            "TenantId"          = ""
+            "Subscription"      = ""
             "CustomArmEndpoint" = ""
         }
         Add-Member -InputObject $StampDef -MemberType NoteProperty -Name 'KeyVaultCloud' -Value $KeyVaultCloud
     }
-    if (-not [string]::IsNullOrEmpty($CustomArmEndpoint)) 
-    {
+    #if key vault was previously defined define new version with values from old one
+    else {
+        $KeyVaultCloud = [PSCustomObject]@{
+            "Cloud"             = $StampDef.KeyVaultCloud.Cloud
+            "TenantId"          = $StampDef.KeyVaultCloud.TenantId
+            "Subscription"      = $StampDef.KeyVaultCloud.Subscription
+            "CustomArmEndpoint" = $StampDef.KeyVaultCloud.CustomArmEndpoint
+        }
+        $StampDef.KeyVaultCloud = $KeyVaultCloud
+    }
+
+    if (-not [string]::IsNullOrEmpty($CustomArmEndpoint)) {
         $StampDef.KeyVaultCloud.Cloud = 'custom'
     }
     else {
@@ -914,9 +953,9 @@ function Unlock-AzsRpSubscription {
 }
 
 function Get-Principalid {
-    $profile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
-    $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($profile)
-    $token = $profileClient.AcquireAccessToken($profile.DefaultContext.Tenant.Id)
+    $azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+    $profileClient = [Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient]::new($azProfile)
+    $token = $profileClient.AcquireAccessToken($azprofile.DefaultContext.Tenant.Id)
     $segments = $token.AccessToken.Split('.')
     $s = $segments[1]
     if ($s.Length % 4 -ne 0) { $s = $s + [string]::new('=', 4 - $s.Length % 4) }
