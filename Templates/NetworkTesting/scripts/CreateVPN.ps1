@@ -25,8 +25,8 @@
         DHGroup                          = 'Group2'
         EncryptionMethod                 = 'AES256' 
         IntegrityCheckMethod             = 'SHA256' 
-        PfsGroup                         = 'PFS2048' 
-        EnableQoS                        = 'Enabled' 
+        PfsGroup                         = 'None' 
+        EnableQoS                        = 'Disabled' 
         NumberOfTries                    = 0  
     }
     Add-VpnS2SInterface @params -Persistent -CustomPolicy
