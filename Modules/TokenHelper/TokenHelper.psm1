@@ -123,7 +123,7 @@ function Get-ResourceToken {
         }
         "CertSP" {
             #Using a certificate based service principal
-            $jwt = New-SelfSignedJsonWebToken -ClientCertificate $Cert -ClientId $AppId -Audience $adMetadata.token_endpoint 
+            $jwt = New-SelfSignedJsonWebToken -ClientCertificate $Cert -ClientId $AppId -Audience $TokenEndpoint
             $grantBody = 'grant_type=client_credentials&resource={0}&client_id={1}&client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer&client_assertion={2}' -f $Resource, $AppId, $jwt
         }
         "RefreshToken" {
